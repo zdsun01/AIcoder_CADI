@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QFont
-from app_window import AICoderApp
+from ui.main_window import AICoderApp
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

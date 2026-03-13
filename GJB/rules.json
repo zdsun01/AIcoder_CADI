@@ -1,0 +1,830 @@
+[
+  {
+    "title": "4.1 声明定义类",
+    "rule": "过程名禁止被重用",
+    "rule_id": "4.1.1.1",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "标号名禁止被重用",
+    "rule_id": "4.1.1.2",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止在结构体定义中含有空域",
+    "rule_id": "4.1.1.3",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止声明多重标号",
+    "rule_id": "4.1.1.4",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "参数必须使用类型声明",
+    "rule_id": "4.1.1.5",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "在过程声明中必须对参数说明",
+    "rule_id": "4.1.1.6",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止过程参数只有类型没有标识符",
+    "rule_id": "4.1.1.7",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止在过程参数表中使用省略号",
+    "rule_id": "4.1.1.8",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止重新定义使用C或C++的关键字",
+    "rule_id": "4.1.1.9",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止过程或函数中的参数表为空",
+    "rule_id": "4.1.1.10",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止在同一个宏中使用多个#或##",
+    "rule_id": "4.1.1.11",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止定义不象函数的宏",
+    "rule_id": "4.1.1.12",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止在宏中包含不允许的项",
+    "rule_id": "4.1.1.13",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止重新定义保留字",
+    "rule_id": "4.1.1.14",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "字符型变量必须明确定义是有符号还是无符号",
+    "rule_id": "4.1.1.15",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止对一个名字重新定义",
+    "rule_id": "4.1.1.16",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "用 typedef 自定义的类型禁止被重新定义",
+    "rule_id": "4.1.1.17",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止在同一个文件中有#if而没有#endif",
+    "rule_id": "4.1.1.18",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止数组没有边界限定",
+    "rule_id": "4.1.1.19",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止在#include<......>中使用绝对路径名",
+    "rule_id": "4.1.1.20",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止结构体声明不完整",
+    "rule_id": "4.1.1.21",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "禁止参数的声明形式上不一致",
+    "rule_id": "4.1.1.22",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "建议使用typedef 在统一的变量声明头文件中对基本变量类型重新定义",
+    "rule_id": "4.1.2.1",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "避免将过程定义为参数",
+    "rule_id": "4.1.2.2",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "过程中避免使用过多的参数,建议不要超过20个",
+    "rule_id": "4.1.2.3",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "在结构体定义中谨慎使用位域",
+    "rule_id": "4.1.2.4",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "避免在一个程序块中单独使用#define",
+    "rule_id": "4.1.2.5",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "避免在一个程序块中单独使用#undef",
+    "rule_id": "4.1.2.6",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "谨慎使用#pragma",
+    "rule_id": "4.1.2.7",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "谨慎使用联合(union)的声明",
+    "rule_id": "4.1.2.8",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.1 声明定义类",
+    "rule": "在结构体中谨慎使用无名位域",
+    "rule_id": "4.1.2.9",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.2 版面书写类",
+    "rule": "过程体必须用大括号括起来",
+    "rule_id": "4.2.1.1",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.2 版面书写类",
+    "rule": "循环体必须用大括号括起来",
+    "rule_id": "4.2.1.2",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.2 版面书写类",
+    "rule": "then/else 中的语句必须用大括号括起来",
+    "rule_id": "4.2.1.3",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.2 版面书写类",
+    "rule": "逻辑表达式的连接必须使用括号",
+    "rule_id": "4.2.1.4",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.2 版面书写类",
+    "rule": "禁止在头文件前有可执行代码",
+    "rule_id": "4.2.1.5",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.2 版面书写类",
+    "rule": "宏参数必须用括号括起来",
+    "rule_id": "4.2.1.6",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.2 版面书写类",
+    "rule": "嵌入汇编程序的过程必须是纯汇编程序",
+    "rule_id": "4.2.1.7",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.2 版面书写类",
+    "rule": "头文件名禁止使用“”、“\\”和“/*”等字符",
+    "rule_id": "4.2.1.8",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.2 版面书写类",
+    "rule": "禁止字符串中单独使用“\\”,字符串的终止必须使用“\\0”",
+    "rule_id": "4.2.1.9",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.2 版面书写类",
+    "rule": "main 必须定义为int main(void) 或 int main(int, char*)的形式",
+    "rule_id": "4.2.1.10",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.2 版面书写类",
+    "rule": "建议一个文件中的程序总行不超过2000行",
+    "rule_id": "4.2.2.1",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.2 版面书写类",
+    "rule": "建议一个过程或函数中的程序总行不超过200行",
+    "rule_id": "4.2.2.2",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.3 分支控制类",
+    "rule": "禁止条件判别成立时相应分支无执行语句",
+    "rule_id": "4.3.1.1",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.3 分支控制类",
+    "rule": "在if...else if语句中必须使用else分支",
+    "rule_id": "4.3.1.2",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.3 分支控制类",
+    "rule": "禁止条件判别的else 分支无可执行语句",
+    "rule_id": "4.3.1.3",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.3 分支控制类",
+    "rule": "在 switch语句中必须有 default 语句",
+    "rule_id": "4.3.1.4",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.3 分支控制类",
+    "rule": "禁止使用空 switch 语句",
+    "rule_id": "4.3.1.5",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.3 分支控制类",
+    "rule": "禁止 switch 语句中只包含 default 语句",
+    "rule_id": "4.3.1.6",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.3 分支控制类",
+    "rule": "禁止 switch 的case 语句不是由 break 终止",
+    "rule_id": "4.3.1.7",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.3 分支控制类",
+    "rule": "禁止 switch 的case 语句中无任何可执行语句",
+    "rule_id": "4.3.1.8",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.4 指针使用类",
+    "rule": "禁止将参数指针赋值给过程指针",
+    "rule_id": "4.4.1.1",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.4 指针使用类",
+    "rule": "禁止指针的指针超过两级",
+    "rule_id": "4.4.1.2",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.4 指针使用类",
+    "rule": "禁止将过程声明为指针类型",
+    "rule_id": "4.4.1.3",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.4 指针使用类",
+    "rule": "谨慎使用指针的逻辑比较",
+    "rule_id": "4.4.2.1",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.4 指针使用类",
+    "rule": "谨慎对指针进行代数运算",
+    "rule_id": "4.4.2.2",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.5 跳转控制类",
+    "rule": "禁止直接从过程中跳出",
+    "rule_id": "4.5.1.1",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.5 跳转控制类",
+    "rule": "禁止使用 goto 语句",
+    "rule_id": "4.5.1.2",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.5 跳转控制类",
+    "rule": "避免使用 setjmp/longjmp",
+    "rule_id": "4.5.2.1",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "禁止在非赋值表达式中出现赋值操作符",
+    "rule_id": "4.6.1.1",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "数组的使用必须保证不会出现越界",
+    "rule_id": "4.6.1.2",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "禁止对有符号类型进行移位运算",
+    "rule_id": "4.6.1.3",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "对变量进行移位运算必须保证不会产生溢出",
+    "rule_id": "4.6.1.4",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "禁止给无符号变量赋负值",
+    "rule_id": "4.6.1.5",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "有符号类型的位长度必须大于等于两位",
+    "rule_id": "4.6.1.6",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "位的定义必须是有符号整数或无符号整数",
+    "rule_id": "4.6.1.7",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "禁止给变量赋的值与变量的类型不一致",
+    "rule_id": "4.6.1.8",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "赋值类型必须匹配",
+    "rule_id": "4.6.1.9",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "数组下标必须是整型数",
+    "rule_id": "4.6.1.10",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "禁止对常数值做逻辑非的运算",
+    "rule_id": "4.6.1.11",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "禁止对有符号类型使用位运算",
+    "rule_id": "4.6.1.12",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "禁止对枚举类型的越限使用",
+    "rule_id": "4.6.1.13",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "变量的使用禁止超出所定义的范围",
+    "rule_id": "4.6.1.14",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "禁止在逻辑表达式中使用赋值操作符",
+    "rule_id": "4.6.1.15",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "禁止赋值操作符与“&&”或“||”连用",
+    "rule_id": "4.6.1.16",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "禁止位操作符带有布尔型的操作数",
+    "rule_id": "4.6.1.17",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "禁止位操作符作用于布尔值",
+    "rule_id": "4.6.1.18",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "避免使用逗号操作符",
+    "rule_id": "4.6.2.1",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "谨防长度操作符 sizeof 的副作用",
+    "rule_id": "4.6.2.2",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "谨慎使用不同类型变量的混合运算",
+    "rule_id": "4.6.2.3",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.6 运算处理类",
+    "rule": "避免由于设计的原因导致某些代码不能执行",
+    "rule_id": "4.6.2.4",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.7 过程调用类",
+    "rule": "实参与形参的个数必须一致",
+    "rule_id": "4.7.1.1",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.7 过程调用类",
+    "rule": "主过程所在文件中禁止有未被该文件中任何过程调用的子过程",
+    "rule_id": "4.7.1.2",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.7 过程调用类",
+    "rule": "static 类型的过程在所在文件中必须被调用",
+    "rule_id": "4.7.1.3",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.7 过程调用类",
+    "rule": "禁止使用被禁用的过程、函数、文件或名称",
+    "rule_id": "4.7.1.4",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.7 过程调用类",
+    "rule": "在不能使用 extern 的文件中禁止使用 extern",
+    "rule_id": "4.7.1.5",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.7 过程调用类",
+    "rule": "禁止同一个表达式中调用多个相关函数",
+    "rule_id": "4.7.1.6",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.7 过程调用类",
+    "rule": "禁止void类型的过程用在表达式中使用",
+    "rule_id": "4.7.1.7",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.7 过程调用类",
+    "rule": "禁止void类型的变量作为参数进行传递",
+    "rule_id": "4.7.1.8",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.7 过程调用类",
+    "rule": "禁止实参和形参类型不一致",
+    "rule_id": "4.7.1.9",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.7 过程调用类",
+    "rule": "函数和原形参数类型必须一致",
+    "rule_id": "4.7.1.10",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.7 过程调用类",
+    "rule": "避免过程参数在过程调用中未被使用",
+    "rule_id": "4.7.2.1",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.7 过程调用类",
+    "rule": "避免以非调用方式使用函数",
+    "rule_id": "4.7.2.2",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.7 过程调用类",
+    "rule": "谨慎使用abort, exit等函数",
+    "rule_id": "4.7.2.3",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.8 语句使用类",
+    "rule": "禁止单独使用小写字母“I”或大写字母“O”作为变量名",
+    "rule_id": "4.8.1.1",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.8 语句使用类",
+    "rule": "禁止三字母词的使用",
+    "rule_id": "4.8.1.2",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.8 语句使用类",
+    "rule": "使用的八进制数必须加以注释",
+    "rule_id": "4.8.1.3",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.8 语句使用类",
+    "rule": "避免使用“+=”或“-=”操作符",
+    "rule_id": "4.8.2.1",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.8 语句使用类",
+    "rule": "谨慎使用“++”或“--”操作符",
+    "rule_id": "4.8.2.2",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.8 语句使用类",
+    "rule": "避免使用continue语句",
+    "rule_id": "4.8.2.3",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.8 语句使用类",
+    "rule": "谨慎使用三重表达式",
+    "rule_id": "4.8.2.4",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.8 语句使用类",
+    "rule": "避免使用不起作用的语句",
+    "rule_id": "4.8.2.5",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.8 语句使用类",
+    "rule": "避免使用空语句",
+    "rule_id": "4.8.2.6",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.8 语句使用类",
+    "rule": "谨慎使用寄存器变量",
+    "rule_id": "4.8.2.7",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.8 语句使用类",
+    "rule": "避免使用老的参数表的定义形式",
+    "rule_id": "4.8.2.8",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.9 调用返回类",
+    "rule": "函数必须有返回语句",
+    "rule_id": "4.9.1.1",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.9 调用返回类",
+    "rule": "禁止void类型的过程中的return语句带有返回值",
+    "rule_id": "4.9.1.2",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.9 调用返回类",
+    "rule": "有返回值的函数中 return 必须带有返回值",
+    "rule_id": "4.9.1.3",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.9 调用返回类",
+    "rule": "函数返回类型必须一致",
+    "rule_id": "4.9.1.4",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.9 调用返回类",
+    "rule": "函数和原型返回类型必须一致",
+    "rule_id": "4.9.1.5",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.10 程序注释类",
+    "rule": "禁止使用嵌套的注释",
+    "rule_id": "4.10.1.1",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.10 程序注释类",
+    "rule": "避免使用不加以分析的注释",
+    "rule_id": "4.10.2.1",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.10 程序注释类",
+    "rule": "建议不使用单行注释“//”",
+    "rule_id": "4.10.2.2",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.11 循环控制类",
+    "rule": "禁止使用不合适的循环变量类型",
+    "rule_id": "4.11.1.1",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.11 循环控制类",
+    "rule": "循环变量必须是局部声明的",
+    "rule_id": "4.11.1.2",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.11 循环控制类",
+    "rule": "谨慎使用无限循环语句",
+    "rule_id": "4.11.2.1",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.11 循环控制类",
+    "rule": "避免在循环中使用 break 语句",
+    "rule_id": "4.11.2.2",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.11 循环控制类",
+    "rule": "谨慎使用无法控制的循环条件",
+    "rule_id": "4.11.2.3",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.12 类型转换类",
+    "rule": "禁止对指针变量使用强制类型转换赋值",
+    "rule_id": "4.12.1.1",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.12 类型转换类",
+    "rule": "谨慎使用其它类型变量给指针赋值",
+    "rule_id": "4.12.2.1",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.12 类型转换类",
+    "rule": "避免使用不必要的类型转换",
+    "rule_id": "4.12.2.2",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.12 类型转换类",
+    "rule": "注意三重表达式中的类型匹配",
+    "rule_id": "4.12.2.3",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.13 初始化类",
+    "rule": "枚举元素的初始化必须完整",
+    "rule_id": "4.13.1.1",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.13 初始化类",
+    "rule": "结构体变量初始化的类型必须一致",
+    "rule_id": "4.13.1.2",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.13 初始化类",
+    "rule": "结构体变量初始化的嵌套结构必须与定义的相一致",
+    "rule_id": "4.13.1.3",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.13 初始化类",
+    "rule": "变量使用前必须被赋过值",
+    "rule_id": "4.13.1.4",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.14 比较判断类",
+    "rule": "禁止对实数类型的量做是否相等的比较",
+    "rule_id": "4.14.1.1",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.14 比较判断类",
+    "rule": "禁止逻辑判别的表达式不是逻辑表达式",
+    "rule_id": "4.14.1.2",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.14 比较判断类",
+    "rule": "switch语句中的表达式禁止是逻辑表达式",
+    "rule_id": "4.14.1.3",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.14 比较判断类",
+    "rule": "建议逻辑表达式采用显式的表达",
+    "rule_id": "4.14.2.1",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.15 名称、符号与变量使用类",
+    "rule": "禁止枚举类型中的元素名与已有的变量名同名",
+    "rule_id": "4.15.1.1",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.15 名称、符号与变量使用类",
+    "rule": "禁止局部变量与全局变量同名",
+    "rule_id": "4.15.1.2",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.15 名称、符号与变量使用类",
+    "rule": "禁止形参名与全局变量名同名",
+    "rule_id": "4.15.1.3",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.15 名称、符号与变量使用类",
+    "rule": "禁止形参名与类型或标识符同名",
+    "rule_id": "4.15.1.4",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.15 名称、符号与变量使用类",
+    "rule": "禁止在内部块中重定义已有的变量名",
+    "rule_id": "4.15.1.5",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.15 名称、符号与变量使用类",
+    "rule": "禁止复杂表达式中使用 volatile 类型的变量",
+    "rule_id": "4.15.1.6",
+    "rule_property": "强制类"
+  },
+  {
+    "title": "4.15 名称、符号与变量使用类",
+    "rule": "在源程序中谨慎使用非标准字符",
+    "rule_id": "4.15.2.1",
+    "rule_property": "推荐类"
+  },
+  {
+    "title": "4.15 名称、符号与变量使用类",
+    "rule": "在宏中谨慎使用“##”或“#”",
+    "rule_id": "4.15.2.2",
+    "rule_property": "推荐类"
+  }
+]
