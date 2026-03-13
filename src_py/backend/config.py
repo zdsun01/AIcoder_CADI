@@ -8,6 +8,7 @@ class ConfigManager:
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.config_file = os.path.join(base_dir, "config.json")
         self.models_file = os.path.join(base_dir, "cfg", "models.json")
+        self.embed_models_file = os.path.join(base_dir, "cfg", "embedding.json")
         self.project_root = ""
         self.variable_excel_path = ""
 
@@ -21,6 +22,7 @@ class ConfigManager:
         self.embed_api_url = "http://192.104.51.3:28080/embed"
         self.embed_api_key = ""
         self.embed_model_name = ""
+        self.embed_host = ""
 
         self.prompt_template = """# Role (角色设定)
 你是一位精通C/C++航空领域的软件架构师和代码审计专家。
@@ -82,6 +84,7 @@ Rules 部分查看 Excel 匹配结果。
             "embed_api_url": self.embed_api_url,
             "embed_api_key": self.embed_api_key,
             "embed_model_name": self.embed_model_name,
+            "embed_host": self.embed_host,
             "prompt_template": self.prompt_template,
             "project_root": self.project_root
         }
@@ -104,6 +107,7 @@ Rules 部分查看 Excel 匹配结果。
                     self.embed_api_url = data.get("embed_api_url", self.embed_api_url)
                     self.embed_api_key = data.get("embed_api_key", self.embed_api_key)
                     self.embed_model_name = data.get("embed_model_name", self.embed_model_name)
+                    self.embed_host = data.get("embed_host", self.embed_host)
                     self.prompt_template = data.get("prompt_template", self.prompt_template)
                     self.project_root = data.get("project_root", self.project_root)
             except Exception as e:
@@ -130,3 +134,24 @@ Rules 部分查看 Excel 匹配结果。
                 json.dump(profiles, f, indent=4, ensure_ascii=False)
         except Exception as e:
             print(f"配置文件保存失败: {e}")
+
+    def load_embed_profiles(self):
+        if os.path.exists(self.embed_models_file):
+            try:
+                with open(self.embed_models_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"加载 Embedding 模型配置文件失败: {e}")
+                return {}
+        return {}
+
+    def save_embed_profile(self, name, profile_data):
+        profiles = self.load_embed_profiles()
+        profiles[name] = profile_data
+        
+        os.makedirs(os.path.dirname(self.embed_models_file), exist_ok=True)
+        try:
+            with open(self.embed_models_file, 'w', encoding='utf-8') as f:
+                json.dump(profiles, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"Embedding 配置文件保存失败: {e}")

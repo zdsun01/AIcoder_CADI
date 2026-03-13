@@ -25,6 +25,7 @@ class AICoderApp(QMainWindow):
             self.config.embed_api_url,
             embed_api_key=self.config.embed_api_key,
             embed_model_name=self.config.embed_model_name,
+            embed_host=self.config.embed_host,
         )
 
         self.setWindowTitle("AI Coding Assistant (Win7 Compatible - Modular)")

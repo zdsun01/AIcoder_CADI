@@ -19,12 +19,13 @@ from langchain_core.documents import Document
 class HTTPEmbeddings(Embeddings):
     """通用 HTTP Embedding 封装"""
 
-    def __init__(self, endpoint: str, model: str = None, api_key: str = None, timeout: int = 100):
+    def __init__(self, endpoint: str, model: str = None, api_key: str = None, host: str = None, timeout: int = 100):
         self.endpoint = endpoint.rstrip("/")
         self.model = model
         self.api_key = api_key
+        self.host = host
         self.timeout = timeout
-        print(f"[HTTPEmbeddings] 初始化，Endpoint: {self.endpoint}, Model: {self.model}")
+        print(f"[HTTPEmbeddings] 初始化，Endpoint: {self.endpoint}, Model: {self.model}, Host: {self.host}")
 
     def _post(self, texts: List[str]) -> List[List[float]]:
         payload = {"input": texts[0]}
@@ -34,6 +35,8 @@ class HTTPEmbeddings(Embeddings):
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
+        if self.host:
+            headers["Host"] = self.host
 
         resp = requests.post(self.endpoint, headers=headers, json=payload, timeout=self.timeout)
         resp.raise_for_status()
@@ -58,7 +61,7 @@ class HTTPEmbeddings(Embeddings):
 class RAGManager:
     """RAG 管理核心类"""
 
-    def __init__(self, embed_api_url: str, embed_api_key: str = None, embed_model_name: str = None):
+    def __init__(self, embed_api_url: str, embed_api_key: str = None, embed_model_name: str = None, embed_host: str = None):
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.persist_directory = os.path.join(base_dir, "chroma_db")
 
@@ -76,6 +79,7 @@ class RAGManager:
                 endpoint=embedding_endpoint,
                 model=embed_model_name,
                 api_key=embed_api_key,
+                host=embed_host,
             )
         except Exception as e:
             print(f"[RAG] Embedding 模型初始化失败: {e}")

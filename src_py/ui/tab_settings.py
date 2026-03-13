@@ -56,7 +56,6 @@ class SettingsTab(QWidget):
         self.api_url_input.setPlaceholderText("例如: http://192.168.51.3:28080/v1/chat/completions")
         
         self.api_key_input = QLineEdit(self.config.api_key)
-        self.api_key_input.setEchoMode(QLineEdit.Password)
         
         llm_layout.addRow("模型名称:", self.model_name_input)
         llm_layout.addRow("Host:", self.host_input)
@@ -72,15 +71,30 @@ class SettingsTab(QWidget):
         # 2. Embedding 配置
         embed_group = QGroupBox("2. 知识库嵌入模型 (Embedding)")
         embed_layout = QFormLayout()
+        
+        # 加载 Embedding 配置
+        self.embed_profiles = self.config.load_embed_profiles()
+
+        self.embed_model_input = QComboBox()
+        self.embed_model_input.setEditable(True)
+        # 添加已保存的配置文件名称
+        self.embed_model_input.addItems(list(self.embed_profiles.keys()))
+        self.embed_model_input.setCurrentText(self.config.embed_model_name)
+        self.embed_model_input.currentTextChanged.connect(self._on_embed_model_name_changed)
+
+        self.embed_host_input = QLineEdit(self.config.embed_host)
+        self.embed_host_input.setPlaceholderText("例如: api.example.com (用于 Host HTTP Header，可为空)")
+
         self.embed_url_input = QLineEdit(self.config.embed_api_url)
         self.embed_url_input.setPlaceholderText("例如: http://192.168.51.3:28080/embed")
+        
         self.embed_key_input = QLineEdit(self.config.embed_api_key)
-        self.embed_key_input.setEchoMode(QLineEdit.Password)
-        self.embed_model_input = QLineEdit(self.config.embed_model_name)
-        self.embed_model_input.setPlaceholderText("例如: qwen3-embedding:latest")
+        
+        embed_layout.addRow("Embed Model:", self.embed_model_input)
+        embed_layout.addRow("Embed Host:", self.embed_host_input)
         embed_layout.addRow("Embed URL:", self.embed_url_input)
         embed_layout.addRow("Embed Key:", self.embed_key_input)
-        embed_layout.addRow("Embed Model:", self.embed_model_input)
+        
         embed_group.setLayout(embed_layout)
         layout.addWidget(embed_group)
 
@@ -114,6 +128,13 @@ class SettingsTab(QWidget):
             self.host_input.setText(profile.get("host", ""))
             self.api_url_input.setText(profile.get("api_url", ""))
             self.api_key_input.setText(profile.get("api_key", ""))
+
+    def _on_embed_model_name_changed(self, text):
+        if hasattr(self, 'embed_profiles') and text in self.embed_profiles:
+            profile = self.embed_profiles[text]
+            self.embed_host_input.setText(profile.get("embed_host", ""))
+            self.embed_url_input.setText(profile.get("embed_api_url", ""))
+            self.embed_key_input.setText(profile.get("embed_api_key", ""))
 
     def _test_connection(self):
         url = self.api_url_input.text().strip()
@@ -153,7 +174,8 @@ class SettingsTab(QWidget):
         self.config.host = self.host_input.text().strip()
         self.config.embed_api_url = self.embed_url_input.text().strip()
         self.config.embed_api_key = self.embed_key_input.text().strip()
-        self.config.embed_model_name = self.embed_model_input.text().strip()
+        self.config.embed_model_name = self.embed_model_input.currentText().strip()
+        self.config.embed_host = self.embed_host_input.text().strip()
         self.config.project_root = self.proj_root_input.text().strip()
         self.config.save_config()
 
@@ -169,6 +191,19 @@ class SettingsTab(QWidget):
             self.model_profiles[self.config.model_name] = profile_data
             if self.model_name_input.findText(self.config.model_name) == -1:
                 self.model_name_input.addItem(self.config.model_name)
+
+        # 保存到 cfg/embedding.json
+        if self.config.embed_model_name:
+            embed_profile_data = {
+                "embed_host": self.config.embed_host,
+                "embed_api_url": self.config.embed_api_url,
+                "embed_api_key": self.config.embed_api_key
+            }
+            self.config.save_embed_profile(self.config.embed_model_name, embed_profile_data)
+            # 更新当前内存中的 profile
+            self.embed_profiles[self.config.embed_model_name] = embed_profile_data
+            if self.embed_model_input.findText(self.config.embed_model_name) == -1:
+                self.embed_model_input.addItem(self.config.embed_model_name)
 
         self.on_settings_saved_fn()
         QMessageBox.information(self, "保存成功", "配置已保存！\n注意：如果修改了 Embedding 配置，请重启软件以生效。")
