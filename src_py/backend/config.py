@@ -4,8 +4,10 @@ import os
 class ConfigManager:
     """管理配置，支持保存到 config.json 文件"""
     def __init__(self):
-        self.config_file = "../config.json"
-        self.models_file = "../cfg/models.json"
+        # 使用相对于当前文件或工程根目录的确定路径
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        self.config_file = os.path.join(base_dir, "config.json")
+        self.models_file = os.path.join(base_dir, "cfg", "models.json")
         self.project_root = ""
         self.variable_excel_path = ""
 

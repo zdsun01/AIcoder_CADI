@@ -1,0 +1,7 @@
+{
+    "qwen-plus": {
+        "host": "",
+        "api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+        "api_key": "sk-f0dac44fa15f438ab9d68045594c9ed4"
+    }
+}

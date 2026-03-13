@@ -1,0 +1,11 @@
+{
+    "api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    "api_key": "sk-f0dac44fa15f438ab9d68045594c9ed4",
+    "model_name": "qwen-plus",
+    "host": "",
+    "embed_api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings",
+    "embed_api_key": "sk-f0dac44fa15f438ab9d68045594c9ed4",
+    "embed_model_name": "text-embedding-v4",
+    "prompt_template": "# Role (角色设定)\n你是一位精通C/C++航空领域的软件架构师和代码审计专家。\n\n# Context (知识库参考)\n系统已从内部知识库检索到以下相关背景信息，请在生成代码时优先参考：\n\"\"\"\n{context}\n\"\"\"\n\n# Rules (编码规范)\n必须严格遵守以下项目级编码约束：\n\"\"\"\n{rules}\n\"\"\"\n(注：以上规则包含自动检索到的 **GJB 5369-2005** 相关条款。如果规则为空，请遵循该\n标准的通用安全最佳实践)\n\n# Task Assignment (结构化任务)\n你当前需要实现以下具体需求：\n\n1. **需求元数据**:\n   - ID: {req_id}\n   - 名称: {req_name}\n\n2. **核心逻辑描述**:\n   \"\"\"\n   {req_content}\n   \"\"\"\n\n3. **变量定义 (输入/输出/状态)**:\n   \"\"\"\n   {req_vars}\n   \"\"\"\n   说明：如果此处为空或指示参考 Rules，则说明该需求完全依赖全局系统信号，请移步 \nRules 部分查看 Excel 匹配结果。\n\n4. **参考实现 (遗留代码)**:\n   \"\"\"\n   {req_ref_code}\n   \"\"\"\n\n# Instructions (执行思维链)\n请不要急于输出代码，而是按照以下步骤进行深度思考：\n1. **需求解构**: 识别核心输入输出。\n2. **规则匹配**: 仔细阅读 Rules 部分，指出当前代码可能违反的 GJB 规则。\n3. **逻辑移植**: 参考 [参考实现] 的写法，但必须按照 [核心逻辑描述] 的要求重写业务逻辑，并根据 [变量定义] 生成对应的结构体。\n4. **代码实现**: 编写符合 GJB 5369 标准的 C 代码。\n5. **自我验证**: 检查是否满足所有强制类规则。\n",
+    "project_root": ""
+}
