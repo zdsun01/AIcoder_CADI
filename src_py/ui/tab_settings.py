@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QTextEdit, QGroupBox, QFormLayout, QFileDialog, QMessageBox, QComboBox
 )
+from PyQt5.QtCore import QSettings
 from ui.workers import ConnectionTestThread
 
 
@@ -214,6 +215,9 @@ class SettingsTab(QWidget):
         QMessageBox.information(self, "保存", "提示词模板已更新并保存到本地")
 
     def _browse_project_root(self):
-        directory = QFileDialog.getExistingDirectory(self, "选择工程根目录")
+        settings = QSettings("AICoder", "CADI")
+        last_dir = settings.value("last_dir", "")
+        directory = QFileDialog.getExistingDirectory(self, "选择工程根目录", last_dir)
         if directory:
+            settings.setValue("last_dir", directory)
             self.proj_root_input.setText(directory)

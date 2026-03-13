@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QTableWidget, QTableWidgetItem, QHeaderView, QProgressBar,
     QFileDialog, QMessageBox, QApplication,
 )
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QSettings
 
 from ui.widgets import FileDragTextEdit
 from ui.workers import GenerationThread
@@ -184,13 +184,19 @@ class PipelineTab(QWidget):
     #  UI helpers
     # ------------------------------------------------------------------ #
     def _browse_file(self, line_edit, filters):
-        path, _ = QFileDialog.getOpenFileName(self, "选择文件", "", filters)
+        settings = QSettings("AICoder", "CADI")
+        last_dir = settings.value("last_dir", "")
+        path, _ = QFileDialog.getOpenFileName(self, "选择文件", last_dir, filters)
         if path:
+            settings.setValue("last_dir", os.path.dirname(path))
             line_edit.setText(path)
 
     def _select_variable_file(self):
-        path, _ = QFileDialog.getOpenFileName(self, "选择变量表 Excel", "", "Excel Files (*.xlsx *.xls)")
+        settings = QSettings("AICoder", "CADI")
+        last_dir = settings.value("last_dir", "")
+        path, _ = QFileDialog.getOpenFileName(self, "选择变量表 Excel", last_dir, "Excel Files (*.xlsx *.xls)")
         if path:
+            settings.setValue("last_dir", os.path.dirname(path))
             self.var_path_edit.setText(path)
             self.config.variable_excel_path = path
             self.config.save_config()

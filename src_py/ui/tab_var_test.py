@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QTextEdit, QGroupBox, QFormLayout, QComboBox, QSpinBox, QProgressBar,
     QFileDialog, QMessageBox,
 )
+from PyQt5.QtCore import QSettings
 from ui.workers import BatchTestThread
 
 
@@ -87,8 +88,11 @@ class VariableTestTab(QWidget):
         layout.addWidget(self.log_area)
 
     def _browse(self, line_edit, filters):
-        path, _ = QFileDialog.getOpenFileName(self, "选择文件", "", filters)
+        settings = QSettings("AICoder", "CADI")
+        last_dir = settings.value("last_dir", "")
+        path, _ = QFileDialog.getOpenFileName(self, "选择文件", last_dir, filters)
         if path:
+            settings.setValue("last_dir", os.path.dirname(path))
             line_edit.setText(path)
 
     def refresh_kbs(self):

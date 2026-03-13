@@ -5,6 +5,7 @@
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QLabel, QTabWidget, QFileDialog,
 )
+from PyQt5.QtCore import QSettings
 
 from backend.config import ConfigManager
 from backend.rag_core import RAGManager
@@ -85,8 +86,12 @@ class AICoderApp(QMainWindow):
     #  全局辅助
     # ------------------------------------------------------------------ #
     def _browse_file(self, line_edit):
-        file_path, _ = QFileDialog.getOpenFileName(self, "选择文件")
+        import os
+        settings = QSettings("AICoder", "CADI")
+        last_dir = settings.value("last_dir", "")
+        file_path, _ = QFileDialog.getOpenFileName(self, "选择文件", last_dir)
         if file_path:
+            settings.setValue("last_dir", os.path.dirname(file_path))
             line_edit.setText(file_path)
 
     def _refresh_all_kbs(self):
