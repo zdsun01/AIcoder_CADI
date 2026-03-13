@@ -8,5 +8,10 @@
         "host": "",
         "api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
         "api_key": "sk-f0dac44fa15f438ab9d68045594c9ed4"
+    },
+    "deepseek-v3.1": {
+        "host": "",
+        "api_url": "http://192.104.51.3:28080/v1/chat/completions",
+        "api_key": ""
     }
 }

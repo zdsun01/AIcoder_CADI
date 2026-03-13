@@ -2,24 +2,25 @@ import json
 import os
 
 class ConfigManager:
-    """管理配置，支持保存到 config.json 文件"""
+    """管理配置，提示词保存到 cfg/prompt_template.json 文件"""
     def __init__(self):
         # 使用相对于当前文件或工程根目录的确定路径
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.config_file = os.path.join(base_dir, "config.json")
         self.models_file = os.path.join(base_dir, "cfg", "models.json")
         self.embed_models_file = os.path.join(base_dir, "cfg", "embedding.json")
+        self.prompt_template_file = os.path.join(base_dir, "cfg", "prompt_template.json")
+        self.active_config_file = os.path.join(base_dir, "cfg", "last_model_config.json")
         self.project_root = ""
         self.variable_excel_path = ""
 
         # 1. 对话/生成模型配置 (LLM)
-        self.api_url = "http://192.104.51.3:28080/v1/chat/completions"
+        self.api_url = ""
         self.api_key = ""
-        self.model_name = "deepseek-v3.1"
+        self.model_name = ""
         self.host = ""
 
         # 2. 向量/RAG模型配置 (Embedding)
-        self.embed_api_url = "http://192.104.51.3:28080/embed"
+        self.embed_api_url = ""
         self.embed_api_key = ""
         self.embed_model_name = ""
         self.embed_host = ""
@@ -76,42 +77,75 @@ Rules 部分查看 Excel 匹配结果。
         self.load_config()
 
     def save_config(self):
-        data = {
-            "api_url": self.api_url,
-            "api_key": self.api_key,
-            "model_name": self.model_name,
-            "host": self.host,
-            "embed_api_url": self.embed_api_url,
-            "embed_api_key": self.embed_api_key,
-            "embed_model_name": self.embed_model_name,
-            "embed_host": self.embed_host,
-            "prompt_template": self.prompt_template,
-            "project_root": self.project_root
-        }
+        # 保存 prompt_template 相关的部分
         try:
-            with open(self.config_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-            print("配置已保存到本地")
+            os.makedirs(os.path.dirname(self.prompt_template_file), exist_ok=True)
+            with open(self.prompt_template_file, 'w', encoding='utf-8') as f:
+                json.dump({"prompt_template": self.prompt_template}, f, indent=4, ensure_ascii=False)
+            print("提示词模板已保存到 cfg/prompt_template.json")
         except Exception as e:
-            print(f"保存配置失败: {e}")
+            print(f"保存提示词模板失败: {e}")
+        
+        # 保存活跃配置
+        try:
+            active_data = {
+                "project_root": self.project_root,
+                "model_name": self.model_name,
+                "embed_model_name": self.embed_model_name
+            }
+            with open(self.active_config_file, 'w', encoding='utf-8') as f:
+                json.dump(active_data, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"保存活跃配置失败: {e}")
 
     def load_config(self):
-        if os.path.exists(self.config_file):
+        # 1. 加载提示词模板
+        if os.path.exists(self.prompt_template_file):
             try:
-                with open(self.config_file, 'r', encoding='utf-8') as f:
+                with open(self.prompt_template_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    self.api_url = data.get("api_url", self.api_url)
-                    self.api_key = data.get("api_key", self.api_key)
-                    self.model_name = data.get("model_name", self.model_name)
-                    self.host = data.get("host", self.host)
-                    self.embed_api_url = data.get("embed_api_url", self.embed_api_url)
-                    self.embed_api_key = data.get("embed_api_key", self.embed_api_key)
-                    self.embed_model_name = data.get("embed_model_name", self.embed_model_name)
-                    self.embed_host = data.get("embed_host", self.embed_host)
                     self.prompt_template = data.get("prompt_template", self.prompt_template)
-                    self.project_root = data.get("project_root", self.project_root)
             except Exception as e:
-                print(f"加载配置失败: {e}")
+                print(f"加载提示词模板失败: {e}")
+                
+        # 加载活跃配置
+        if os.path.exists(self.active_config_file):
+            try:
+                with open(self.active_config_file, 'r', encoding='utf-8') as f:
+                    active_data = json.load(f)
+                    self.project_root = active_data.get("project_root", self.project_root)
+                    self.model_name = active_data.get("model_name", self.model_name)
+                    self.embed_model_name = active_data.get("embed_model_name", self.embed_model_name)
+            except Exception as e:
+                print(f"加载活跃配置失败: {e}")
+
+        # 2. 如果存在模型配置，自动加载第一个或者默认的 LLM 模型作为初始化
+        try:
+            model_profiles = self.load_model_profiles()
+            if model_profiles:
+                if not self.model_name or self.model_name not in model_profiles:
+                    self.model_name = list(model_profiles.keys())[0]
+                
+                profile = model_profiles.get(self.model_name, {})
+                self.api_url = profile.get("api_url", self.api_url)
+                self.api_key = profile.get("api_key", self.api_key)
+                self.host = profile.get("host", self.host)
+        except Exception as e:
+            print(f"动态加载 LLM 配置失败: {e}")
+
+        # 3. 如果存在 Embedding 配置，自动加载第一个或者默认的 Embedding 模型作为初始化
+        try:
+            embed_profiles = self.load_embed_profiles()
+            if embed_profiles:
+                if not self.embed_model_name or self.embed_model_name not in embed_profiles:
+                    self.embed_model_name = list(embed_profiles.keys())[0]
+                
+                profile = embed_profiles.get(self.embed_model_name, {})
+                self.embed_api_url = profile.get("embed_api_url", profile.get("api_url", self.embed_api_url))
+                self.embed_api_key = profile.get("embed_api_key", profile.get("api_key", self.embed_api_key))
+                self.embed_host = profile.get("embed_host", profile.get("host", self.embed_host))
+        except Exception as e:
+            print(f"动态加载 Embedding 配置失败: {e}")
 
     def load_model_profiles(self):
         if os.path.exists(self.models_file):

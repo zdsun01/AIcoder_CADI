@@ -75,17 +75,35 @@ class RAGManager:
         print(f"[RAG] 初始化 Embedding 服务，连接地址: {embedding_endpoint}")
 
         try:
+            if embedding_endpoint:
+                self.embedding_fn = HTTPEmbeddings(
+                    endpoint=embedding_endpoint,
+                    model=embed_model_name,
+                    api_key=embed_api_key,
+                    host=embed_host,
+                )
+            else:
+                self.embedding_fn = None
+                print("[RAG] Embedding endpoint is empty. Skipping initialization.")
+        except Exception as e:
+            print(f"[RAG] Embedding 模型初始化失败: {e}")
+            self.embedding_fn = None
+
+
+    def update_embeddings(self, embed_api_url: str, embed_api_key: str = None, embed_model_name: str = None, embed_host: str = None):
+        """动态更新 Embedding 配置"""
+        embedding_endpoint = embed_api_url.rstrip("/")
+        try:
             self.embedding_fn = HTTPEmbeddings(
                 endpoint=embedding_endpoint,
                 model=embed_model_name,
                 api_key=embed_api_key,
                 host=embed_host,
             )
+            print(f"[RAG] Embedding 服务已更新，模型: {embed_model_name}, 地址: {embedding_endpoint}")
         except Exception as e:
-            print(f"[RAG] Embedding 模型初始化失败: {e}")
+            print(f"[RAG] Embedding 配置更新失败: {e}")
             self.embedding_fn = None
-
-        self.init_default_kb()
 
     @property
     def knowledge_bases(self):

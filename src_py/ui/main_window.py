@@ -3,7 +3,7 @@
 """
 
 from PyQt5.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QLabel, QTabWidget, QFileDialog,
+    QMainWindow, QWidget, QVBoxLayout, QLabel, QTabWidget, QFileDialog, QMessageBox
 )
 from PyQt5.QtCore import QSettings
 
@@ -43,6 +43,14 @@ class AICoderApp(QMainWindow):
         self.statusBar().addWidget(self.status_label)
 
         self._init_tabs()
+
+        if not self.config.api_url or not self.config.embed_api_url:
+            QMessageBox.information(
+                self, "配置提示", 
+                "配置信息未设置，请前往系统设置界面配置LLM以及Embedding等参数！"
+            )
+            # 自动切换到设置Tab
+            self.tabs.setCurrentWidget(self.settings_tab)
 
     def _init_tabs(self):
         # Tab1: 代码生成
@@ -105,3 +113,9 @@ class AICoderApp(QMainWindow):
     def _on_settings_saved(self):
         """设置保存后同步 UI"""
         self.gen_tab.model_label_display.setText(f"当前: {self.config.model_name}")
+        self.rag_manager.update_embeddings(
+            embed_api_url=self.config.embed_api_url,
+            embed_api_key=self.config.embed_api_key,
+            embed_model_name=self.config.embed_model_name,
+            embed_host=self.config.embed_host
+        )
