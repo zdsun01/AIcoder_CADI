@@ -41,7 +41,7 @@ class GenerationTab(QWidget):
         self.req_path_edit.setPlaceholderText("选择需求文档 (.txt, .md)...")
         req_btn = QPushButton("📂 浏览...")
         req_btn.setCursor(Qt.PointingHandCursor)
-        req_btn.clicked.connect(lambda: self.browse_file_fn(self.req_path_edit))
+        req_btn.clicked.connect(lambda: self.browse_file_fn(self.req_path_edit, "last_dir_req"))
         req_layout.addWidget(self.req_path_edit)
         req_layout.addWidget(req_btn)
 
@@ -57,7 +57,7 @@ class GenerationTab(QWidget):
         self.rule_path_edit = QLineEdit()
         rule_btn = QPushButton("📂 浏览...")
         rule_btn.setCursor(Qt.PointingHandCursor)
-        rule_btn.clicked.connect(lambda: self.browse_file_fn(self.rule_path_edit))
+        rule_btn.clicked.connect(lambda: self.browse_file_fn(self.rule_path_edit, "last_dir_rule"))
         rule_layout.addWidget(self.rule_path_edit)
         rule_layout.addWidget(rule_btn)
         rule_group.setLayout(rule_layout)
@@ -172,15 +172,26 @@ class GenerationTab(QWidget):
             self.kb_list_widget.addItem(item)
 
     def start_generation(self):
-        req_content = self.req_text_edit.toPlainText()
-        req_file = self.req_path_edit.text()
-        if req_file and os.path.exists(req_file):
+        req_text = self.req_text_edit.toPlainText().strip()
+        req_file = self.req_path_edit.text().strip()
+        
+        has_file = bool(req_file and os.path.exists(req_file))
+        has_text = bool(req_text)
+        
+        if has_file and has_text:
+            QMessageBox.warning(self, "提示", "需求文件和手动输入只能选择其一！")
+            return
+
+        req_content = ""
+        if has_file:
             try:
                 with open(req_file, "r", encoding="utf-8") as f:
-                    req_content += "\n" + f.read()
+                    req_content = f.read()
             except Exception as e:
                 QMessageBox.warning(self, "错误", f"读取需求文件失败: {e}")
                 return
+        elif has_text:
+            req_content = req_text
 
         if not req_content.strip():
             QMessageBox.warning(self, "提示", "请输入需求或上传需求文件")
@@ -220,18 +231,28 @@ class GenerationTab(QWidget):
 
         # 异步调用
         self.gen_btn.setEnabled(False)
-        self.result_area.setText("正在生成代码(已拆分需求结构)...")
+        self.result_area.setText("正在生成代码(已拆分需求结构)...\n")
         self.code_area.setText("/*等待生成新的代码...*/")
-        self.status_label.setText(f"正在调用 {self.config.model_name} 生成代码...")
+        self.status_label.setText(f"正在调用 {self.config.model_name} 生成代码(流式)...")
 
         self.thread = GenerationThread(
             self.config.api_url, self.config.api_key, self.config.model_name, final_prompt, self.config.host
         )
+        self._current_full_text = ""
+        self.thread.chunk_signal.connect(self._on_chunk)
         self.thread.finished_signal.connect(self._on_finished)
         self.thread.error_signal.connect(self._on_error)
         self.thread.start()
 
+    def _on_chunk(self, text):
+        from PyQt5.QtGui import QTextCursor
+        self._current_full_text += text
+        self.result_area.moveCursor(QTextCursor.End)
+        self.result_area.insertPlainText(text)
+        self.result_area.moveCursor(QTextCursor.End)
+
     def _on_finished(self, text):
+        self._current_full_text = text
         self.result_area.setText(text)
         self.code_area.setText(extract_code_blocks(text))
         self.gen_btn.setEnabled(True)

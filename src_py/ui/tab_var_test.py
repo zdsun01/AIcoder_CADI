@@ -35,7 +35,7 @@ class VariableTestTab(QWidget):
         self.excel_path_edit = QLineEdit()
         self.excel_path_edit.setPlaceholderText("选择包含 '信号名称' 的 Excel 变量表...")
         btn_excel = QPushButton("📂")
-        btn_excel.clicked.connect(lambda: self._browse(self.excel_path_edit, "Excel (*.xlsx)"))
+        btn_excel.clicked.connect(lambda: self._browse(self.excel_path_edit, "Excel (*.xlsx)", "last_dir_var_excel"))
         file_layout.addWidget(self.excel_path_edit)
         file_layout.addWidget(btn_excel)
 
@@ -43,7 +43,7 @@ class VariableTestTab(QWidget):
         self.word_tpl_edit = QLineEdit()
         self.word_tpl_edit.setPlaceholderText("选择包含 {num_id}, {信号名称} 等占位符的 Word 模板...")
         btn_tpl = QPushButton("📂")
-        btn_tpl.clicked.connect(lambda: self._browse(self.word_tpl_edit, "Word (*.docx)"))
+        btn_tpl.clicked.connect(lambda: self._browse(self.word_tpl_edit, "Word (*.docx)", "last_dir_var_tpl"))
         tpl_layout.addWidget(self.word_tpl_edit)
         tpl_layout.addWidget(btn_tpl)
 
@@ -87,12 +87,16 @@ class VariableTestTab(QWidget):
         self.log_area.setStyleSheet("font-size: 12px; color: #333; background: #f9f9f9;")
         layout.addWidget(self.log_area)
 
-    def _browse(self, line_edit, filters):
+    def _browse(self, line_edit, filters, setting_key="last_dir"):
+        import os
         settings = QSettings("AICoder", "CADI")
-        last_dir = settings.value("last_dir", "")
+        last_dir = settings.value(setting_key, "")
+        if not last_dir and hasattr(self, 'config') and self.config.project_root:
+            last_dir = self.config.project_root
+            
         path, _ = QFileDialog.getOpenFileName(self, "选择文件", last_dir, filters)
         if path:
-            settings.setValue("last_dir", os.path.dirname(path))
+            settings.setValue(setting_key, os.path.dirname(path))
             line_edit.setText(path)
 
     def refresh_kbs(self):

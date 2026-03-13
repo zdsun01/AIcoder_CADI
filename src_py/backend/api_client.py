@@ -65,3 +65,42 @@ class LLMClient:
             return False, "API 返回内容为空"
         except Exception as e:
             return False, f"请求失败: {e}"
+
+    def generate_stream(self, prompt, system_message="You are a helpful AI assistant."):
+        """调用 LLM 流式生成，这是一个生成器，yield (success: bool, chunk_or_error: str)"""
+        import json
+        try:
+            data = {
+                "model": self.model_name,
+                "messages": [
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": prompt},
+                ],
+                "stream": True,
+            }
+            with requests.post(
+                self.api_url,
+                headers=self._build_headers(),
+                json=data,
+                timeout=999,
+                stream=True,
+            ) as resp:
+                resp.raise_for_status()
+                for line in resp.iter_lines():
+                    if line:
+                        line = line.decode('utf-8').strip()
+                        if line.startswith("data: "):
+                            data_str = line[6:]
+                            if data_str == "[DONE]":
+                                break
+                            try:
+                                chunk = json.loads(data_str)
+                                if "choices" in chunk and len(chunk["choices"]) > 0:
+                                    delta = chunk["choices"][0].get("delta", {})
+                                    content = delta.get("content", "")
+                                    if content:
+                                        yield True, content
+                            except json.JSONDecodeError:
+                                pass
+        except Exception as e:
+            yield False, f"请求失败: {e}"

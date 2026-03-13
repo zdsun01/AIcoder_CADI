@@ -100,7 +100,7 @@ class KBManageTab(QWidget):
         self.new_kb_file.setPlaceholderText("支持 .txt, .md, .json 等")
         browse_kb = QPushButton("📂 浏览...")
         browse_kb.setFixedSize(80, 30)
-        browse_kb.clicked.connect(lambda: self.browse_file_fn(self.new_kb_file))
+        browse_kb.clicked.connect(lambda: self.browse_file_fn(self.new_kb_file, "last_dir_kb_upload"))
         file_layout = QHBoxLayout()
         file_layout.addWidget(self.new_kb_file)
         file_layout.addWidget(browse_kb)

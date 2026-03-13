@@ -93,13 +93,16 @@ class AICoderApp(QMainWindow):
     # ------------------------------------------------------------------ #
     #  全局辅助
     # ------------------------------------------------------------------ #
-    def _browse_file(self, line_edit):
+    def _browse_file(self, line_edit, setting_key="last_dir"):
         import os
         settings = QSettings("AICoder", "CADI")
-        last_dir = settings.value("last_dir", "")
+        last_dir = settings.value(setting_key, "")
+        if not last_dir and hasattr(self, 'config') and self.config.project_root:
+            last_dir = self.config.project_root
+            
         file_path, _ = QFileDialog.getOpenFileName(self, "选择文件", last_dir)
         if file_path:
-            settings.setValue("last_dir", os.path.dirname(file_path))
+            settings.setValue(setting_key, os.path.dirname(file_path))
             line_edit.setText(file_path)
 
     def _refresh_all_kbs(self):

@@ -24,6 +24,7 @@ class ConnectionTestThread(QThread):
 
 class GenerationThread(QThread):
     """异步调用 LLM 生成"""
+    chunk_signal = pyqtSignal(str)   # 用于流式更新
     finished_signal = pyqtSignal(str)
     error_signal = pyqtSignal(str)
 
@@ -33,11 +34,23 @@ class GenerationThread(QThread):
         self.prompt = prompt
 
     def run(self):
-        success, result = self.client.generate(self.prompt)
-        if success:
-            self.finished_signal.emit(result)
+        full_text = ""
+        has_error = False
+        error_msg = ""
+        
+        for success, content in self.client.generate_stream(self.prompt):
+            if success:
+                full_text += content
+                self.chunk_signal.emit(content)
+            else:
+                has_error = True
+                error_msg = content
+                break
+                
+        if has_error:
+            self.error_signal.emit(error_msg)
         else:
-            self.error_signal.emit(result)
+            self.finished_signal.emit(full_text)
 
 
 class BatchTestThread(QThread):

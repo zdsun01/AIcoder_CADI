@@ -216,8 +216,11 @@ class SettingsTab(QWidget):
 
     def _browse_project_root(self):
         settings = QSettings("AICoder", "CADI")
-        last_dir = settings.value("last_dir", "")
+        last_dir = settings.value("last_dir_project_root", "")
+        if not last_dir and hasattr(self, 'config') and self.config.project_root:
+            last_dir = self.config.project_root
+            
         directory = QFileDialog.getExistingDirectory(self, "选择工程根目录", last_dir)
         if directory:
-            settings.setValue("last_dir", directory)
+            settings.setValue("last_dir_project_root", directory)
             self.proj_root_input.setText(directory)

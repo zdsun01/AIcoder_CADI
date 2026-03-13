@@ -103,7 +103,7 @@ class PipelineTab(QWidget):
         self.word_template_path.setPlaceholderText("选择包含表格和占位符的 .docx 模板...")
         browse_tpl = QPushButton("📂")
         browse_tpl.setFixedSize(30, 20)
-        browse_tpl.clicked.connect(lambda: self._browse_file(self.word_template_path, "Word (*.docx)"))
+        browse_tpl.clicked.connect(lambda: self._browse_file(self.word_template_path, "Word (*.docx)", "last_dir_pipeline_tpl"))
         tpl_layout = QHBoxLayout()
         tpl_layout.addWidget(self.word_template_path)
         tpl_layout.addWidget(browse_tpl)
@@ -112,7 +112,7 @@ class PipelineTab(QWidget):
         self.ref_excel_path.setPlaceholderText("选择包含参考代码的 Excel (用于填充报告)...")
         browse_ref = QPushButton("📂")
         browse_ref.setFixedSize(30, 20)
-        browse_ref.clicked.connect(lambda: self._browse_file(self.ref_excel_path, "Excel (*.xlsx)"))
+        browse_ref.clicked.connect(lambda: self._browse_file(self.ref_excel_path, "Excel (*.xlsx)", "last_dir_pipeline_ref"))
         ref_layout = QHBoxLayout()
         ref_layout.addWidget(self.ref_excel_path)
         ref_layout.addWidget(browse_ref)
@@ -183,20 +183,28 @@ class PipelineTab(QWidget):
     # ------------------------------------------------------------------ #
     #  UI helpers
     # ------------------------------------------------------------------ #
-    def _browse_file(self, line_edit, filters):
+    def _browse_file(self, line_edit, filters, setting_key="last_dir"):
+        import os
         settings = QSettings("AICoder", "CADI")
-        last_dir = settings.value("last_dir", "")
+        last_dir = settings.value(setting_key, "")
+        if not last_dir and hasattr(self, 'config') and self.config.project_root:
+            last_dir = self.config.project_root
+            
         path, _ = QFileDialog.getOpenFileName(self, "选择文件", last_dir, filters)
         if path:
-            settings.setValue("last_dir", os.path.dirname(path))
+            settings.setValue(setting_key, os.path.dirname(path))
             line_edit.setText(path)
 
     def _select_variable_file(self):
+        import os
         settings = QSettings("AICoder", "CADI")
-        last_dir = settings.value("last_dir", "")
+        last_dir = settings.value("last_dir_pipeline_var", "")
+        if not last_dir and hasattr(self, 'config') and self.config.project_root:
+            last_dir = self.config.project_root
+            
         path, _ = QFileDialog.getOpenFileName(self, "选择变量表 Excel", last_dir, "Excel Files (*.xlsx *.xls)")
         if path:
-            settings.setValue("last_dir", os.path.dirname(path))
+            settings.setValue("last_dir_pipeline_var", os.path.dirname(path))
             self.var_path_edit.setText(path)
             self.config.variable_excel_path = path
             self.config.save_config()
