@@ -23,6 +23,9 @@ class ConfigManager:
         self.active_config_file = os.path.join(cfg_dir, "last_model_config.json")
         self.project_root = ""
         self.variable_excel_path = ""
+        self.special_variable_excel_path = ""
+        self.rule_path = ""
+        self.static_rule_path = ""
 
         # 1. 对话/生成模型配置 (LLM)
         self.api_url = ""
@@ -102,7 +105,11 @@ Rules 部分查看 Excel 匹配结果。
             active_data = {
                 "project_root": self.project_root,
                 "model_name": self.model_name,
-                "embed_model_name": self.embed_model_name
+                "embed_model_name": self.embed_model_name,
+                "variable_excel_path": self.variable_excel_path,
+                "special_variable_excel_path": self.special_variable_excel_path,
+                "rule_path": self.rule_path,
+                "static_rule_path": self.static_rule_path
             }
             with open(self.active_config_file, 'w', encoding='utf-8') as f:
                 json.dump(active_data, f, indent=4, ensure_ascii=False)
@@ -127,6 +134,10 @@ Rules 部分查看 Excel 匹配结果。
                     self.project_root = active_data.get("project_root", self.project_root)
                     self.model_name = active_data.get("model_name", self.model_name)
                     self.embed_model_name = active_data.get("embed_model_name", self.embed_model_name)
+                    self.variable_excel_path = active_data.get("variable_excel_path", self.variable_excel_path)
+                    self.special_variable_excel_path = active_data.get("special_variable_excel_path", self.special_variable_excel_path)
+                    self.rule_path = active_data.get("rule_path", self.rule_path)
+                    self.static_rule_path = active_data.get("static_rule_path", self.static_rule_path)
             except Exception as e:
                 print(f"加载活跃配置失败: {e}")
 

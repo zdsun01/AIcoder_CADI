@@ -31,14 +31,6 @@ class VariableTestTab(QWidget):
         config_group = QGroupBox("1. 测试配置")
         form = QFormLayout()
 
-        file_layout = QHBoxLayout()
-        self.excel_path_edit = QLineEdit()
-        self.excel_path_edit.setPlaceholderText("选择包含 '信号名称' 的 Excel 变量表...")
-        btn_excel = QPushButton("📂")
-        btn_excel.clicked.connect(lambda: self._browse(self.excel_path_edit, "Excel (*.xlsx)", "last_dir_var_excel"))
-        file_layout.addWidget(self.excel_path_edit)
-        file_layout.addWidget(btn_excel)
-
         tpl_layout = QHBoxLayout()
         self.word_tpl_edit = QLineEdit()
         self.word_tpl_edit.setPlaceholderText("选择包含 {num_id}, {信号名称} 等占位符的 Word 模板...")
@@ -60,7 +52,6 @@ class VariableTestTab(QWidget):
         kb_layout.addWidget(self.kb_combo)
         kb_layout.addWidget(refresh_btn)
 
-        form.addRow("变量表 (Excel):", file_layout)
         form.addRow("测试模板 (Word):", tpl_layout)
         form.addRow("测试数量 (Top N):", self.top_n_spin)
         form.addRow("测试目标知识库:", kb_layout)
@@ -108,13 +99,16 @@ class VariableTestTab(QWidget):
         self.log_area.append(f"[{time_str}] {msg}")
 
     def _start(self):
-        excel_path = self.excel_path_edit.text().strip()
+        excel_path = self.config.variable_excel_path
         tpl_path = self.word_tpl_edit.text().strip()
         kb_name = self.kb_combo.currentText()
         top_n = self.top_n_spin.value()
 
-        if not os.path.exists(excel_path) or not os.path.exists(tpl_path):
-            QMessageBox.warning(self, "错误", "请检查 Excel 或 Word 模板路径是否正确！")
+        if not excel_path or not os.path.exists(excel_path):
+            QMessageBox.warning(self, "错误", "请先在【系统设置】中配置并确保变量表 Excel 路径正确！")
+            return
+        if not tpl_path or not os.path.exists(tpl_path):
+            QMessageBox.warning(self, "错误", "请检查 Word 模板路径是否正确！")
             return
 
         try:

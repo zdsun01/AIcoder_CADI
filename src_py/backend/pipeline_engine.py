@@ -61,6 +61,22 @@ class VariableManager:
         except Exception as e:
             print(f"变量表加载失败: {e}")
 
+    def get_all_vars(self):
+        """获取所有变量，不进行裁剪"""
+        if not self.is_loaded or self.df.empty:
+            return []
+
+        results = []
+        for _, row in self.df.iterrows():
+            var_info = (
+                f"- 名称: {row.get('信号名称', '')}, "
+                f"ID: {row.get('信号ID（变量名）', '')}, "
+                f"类型: {row.get('数据类型', '')}, "
+                f"定义: {row.get('值定义', '')}"
+            )
+            results.append(var_info)
+        return results
+
     def search_relevant_vars(self, requirement_text, top_k=10):
         if not self.is_loaded or self.df.empty:
             return []

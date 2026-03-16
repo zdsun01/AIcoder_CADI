@@ -26,19 +26,17 @@ from backend.report_generator import WordReportGenerator
 class PipelineTab(QWidget):
     """流水线处理 Tab"""
 
-    def __init__(self, config, rag_manager, status_label, rule_path_fn):
+    def __init__(self, config, rag_manager, status_label):
         """
         参数:
             config: ConfigManager
             rag_manager: RAGManager
             status_label: QLabel (状态栏)
-            rule_path_fn: callable() -> str, 获取规则文件路径
         """
         super().__init__()
         self.config = config
         self.rag_manager = rag_manager
         self.status_label = status_label
-        self.rule_path_fn = rule_path_fn
         self.tasks = []
         self.current_task_index = -1
         self.is_running = False
@@ -83,21 +81,8 @@ class PipelineTab(QWidget):
         rag_group.setLayout(rag_layout)
         layout.addWidget(rag_group, 1)
 
-        # 2.1 变量表
-        var_group = QGroupBox("2.1 变量知识库 (Excel)")
-        var_layout = QHBoxLayout()
-        self.var_path_edit = QLineEdit(self.config.variable_excel_path)
-        self.var_path_edit.setPlaceholderText("选择包含 '信号名称/ID/类型' 的 Excel 文件...")
-        var_btn = QPushButton("📂 选择变量表")
-        var_btn.clicked.connect(self._select_variable_file)
-        var_layout.addWidget(QLabel("变量表:"))
-        var_layout.addWidget(self.var_path_edit)
-        var_layout.addWidget(var_btn)
-        var_group.setLayout(var_layout)
-        layout.addWidget(var_group, 0)
-
         # 2.2 报告配置
-        report_group = QGroupBox("2.2 测试报告配置 (Word)")
+        report_group = QGroupBox("2.1 测试报告配置 (Word)")
         report_layout = QFormLayout()
         self.word_template_path = QLineEdit()
         self.word_template_path.setPlaceholderText("选择包含表格和占位符的 .docx 模板...")
@@ -117,21 +102,11 @@ class PipelineTab(QWidget):
         ref_layout.addWidget(self.ref_excel_path)
         ref_layout.addWidget(browse_ref)
         
-        self.static_rule_excel_path = QLineEdit()
-        self.static_rule_excel_path.setPlaceholderText("选择包含静态规则的 Excel (用于代码 Review 节点)...")
-        browse_static = QPushButton("📂")
-        browse_static.setFixedSize(30, 20)
-        browse_static.clicked.connect(lambda: self._browse_file(self.static_rule_excel_path, "Excel (*.xlsx)", "last_dir_pipeline_static"))
-        static_layout = QHBoxLayout()
-        static_layout.addWidget(self.static_rule_excel_path)
-        static_layout.addWidget(browse_static)
-
         self.gen_report_cb = QCheckBox("生成代码同时生成 Word 报告")
         self.gen_report_cb.setChecked(True)
 
         report_layout.addRow("Word 模板:", tpl_layout)
         report_layout.addRow("参考代码库:", ref_layout)
-        report_layout.addRow("静态规则表:", static_layout)
         report_layout.addRow("", self.gen_report_cb)
         report_group.setLayout(report_layout)
         layout.addWidget(report_group, 0)
@@ -204,21 +179,6 @@ class PipelineTab(QWidget):
         if path:
             settings.setValue(setting_key, os.path.dirname(path))
             line_edit.setText(path)
-
-    def _select_variable_file(self):
-        import os
-        settings = QSettings("AICoder", "CADI")
-        last_dir = settings.value("last_dir_pipeline_var", "")
-        if not last_dir and hasattr(self, 'config') and self.config.project_root:
-            last_dir = self.config.project_root
-            
-        path, _ = QFileDialog.getOpenFileName(self, "选择变量表 Excel", last_dir, "Excel Files (*.xlsx *.xls)")
-        if path:
-            settings.setValue("last_dir_pipeline_var", os.path.dirname(path))
-            self.var_path_edit.setText(path)
-            self.config.variable_excel_path = path
-            self.config.save_config()
-            self.var_manager = VariableManager(path)
 
     def _batch_select(self, mode):
         for row in range(self.task_table.rowCount()):
@@ -293,9 +253,9 @@ class PipelineTab(QWidget):
             return
 
         # 变量管理
-        excel_path = self.var_path_edit.text().strip()
+        excel_path = self.config.variable_excel_path.strip()
         if excel_path and os.path.exists(excel_path):
-            if not self.var_manager or getattr(self, '_current_excel', '') != excel_path:
+            if not getattr(self, 'var_manager', None) or getattr(self, '_current_excel', '') != excel_path:
                 self.var_manager = VariableManager(excel_path)
                 self._current_excel = excel_path
         else:
@@ -306,7 +266,7 @@ class PipelineTab(QWidget):
         self.ref_manager = RefCodeManager(ref_excel) if ref_excel and os.path.exists(ref_excel) else None
 
         # 静态规则 Review
-        static_excel = self.static_rule_excel_path.text().strip()
+        static_excel = self.config.static_rule_path.strip()
         self.static_rule_manager = StaticRuleManager(static_excel) if static_excel and os.path.exists(static_excel) else None
 
         # 临时文件夹
@@ -379,17 +339,22 @@ class PipelineTab(QWidget):
                 query_text = full_query[:800]
                 rag_context = self.rag_manager.recall_multi(query_text, selected_kbs)
 
-        # --- 变量匹配 ---
+        # --- 变量获取 ---
         matched_vars = "无 (未配置变量表或无匹配项)"
         if self.var_manager and self.var_manager.is_loaded:
-            search_query = f"{task.name} {task.content}"
-            relevant = self.var_manager.search_relevant_vars(search_query, top_k=15)
-            if relevant:
-                matched_vars = "\n".join(relevant)
+            all_vars = self.var_manager.get_all_vars()
+            if all_vars:
+                matched_vars = "\n".join(all_vars)
                 task.used_global_vars = matched_vars
 
         # --- 外部规则 ---
-        external_rules = PromptBuilder.load_rules_file(self.rule_path_fn())
+        external_rules = PromptBuilder.load_rules_file(self.config.rule_path.strip())
+        if hasattr(self.config, 'special_variable_excel_path') and self.config.special_variable_excel_path:
+            external_rules += PromptBuilder.load_special_variables_file(self.config.special_variable_excel_path)
+            
+        # 增加静态扫描提取的Excel内容到外部规则中
+        if hasattr(self, 'static_rule_manager') and self.static_rule_manager and self.static_rule_manager.rules_text:
+            external_rules += "\n\n【静态代码检查规则】(请在生成代码时必须严格遵守):\n" + self.static_rule_manager.rules_text + "\n"
 
         # --- 构建 prompt ---
         builder = PromptBuilder(self.config.prompt_template)

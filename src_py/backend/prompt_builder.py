@@ -185,7 +185,7 @@ class PromptBuilder:
         )
 
     # ------------------------------------------------------------------ #
-    #  辅助：读取外部规则文件
+    #  辅助：读取专用规则
     # ------------------------------------------------------------------ #
     @staticmethod
     def load_rules_file(rule_path):
@@ -235,6 +235,37 @@ class PromptBuilder:
                     return f"【用户指定专用规则】:\n{f.read()}\n"
             except Exception:
                 return ""
+
+    @staticmethod
+    def load_special_variables_file(file_path):
+        """读取专用变量的Excel，表头包含 结构体名称 和 结构体内容"""
+        if not file_path or not os.path.exists(file_path):
+            return ""
+
+        if file_path.lower().endswith(('.xlsx', '.xls')):
+            try:
+                import pandas as pd
+                df = pd.read_excel(file_path, engine="openpyxl" if file_path.endswith(".xlsx") else None)
+                df.dropna(how="all", inplace=True)
+                
+                # 寻找我们需要的表头
+                name_col = next((c for c in df.columns if "结构体名称" in str(c)), None)
+                content_col = next((c for c in df.columns if "结构体内容" in str(c)), None)
+                
+                if name_col and content_col:
+                    structs = []
+                    for _, row in df.iterrows():
+                        s_name = str(row[name_col]).strip()
+                        s_content = str(row[content_col]).strip()
+                        if s_name and s_name.lower() != "nan" and s_content and s_content.lower() != "nan":
+                            structs.append(f"【结构体】{s_name}\n内容:\n{s_content}\n")
+                    structs_text = "\n".join(structs)
+                    return f"\n【专用结构体定义(需求可用)】\n{structs_text}\n"
+                else:
+                    return ""
+            except Exception as e:
+                return f"\n【读取专用结构体 Excel 失败】: {e}\n"
+        return ""
 
     # ================================================================== #
     #  Private helpers

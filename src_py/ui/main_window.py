@@ -61,8 +61,7 @@ class AICoderApp(QMainWindow):
 
         # Tab2: 流水线生成
         self.pipeline_tab = PipelineTab(
-            self.config, self.rag_manager, self.status_label,
-            rule_path_fn=lambda: self.gen_tab.rule_path_edit.text().strip(),
+            self.config, self.rag_manager, self.status_label
         )
         self.tabs.addTab(self.pipeline_tab, "流水线生成")
 

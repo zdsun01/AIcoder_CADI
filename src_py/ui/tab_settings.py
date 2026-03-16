@@ -99,6 +99,51 @@ class SettingsTab(QWidget):
         embed_group.setLayout(embed_layout)
         layout.addWidget(embed_group)
 
+        # 3. 项目配置/全局资源 (规则、变量、扫描)
+        resource_group = QGroupBox("3. 项目配置/全局资源")
+        resource_layout = QFormLayout()
+
+        # 专用规则文档
+        rule_layout = QHBoxLayout()
+        self.rule_path_input = QLineEdit(self.config.rule_path)
+        self.rule_path_input.setPlaceholderText("选择特定规则文档 (如 .json, .txt, .pdf, .docx)...")
+        browse_rule_btn = QPushButton("📂")
+        browse_rule_btn.clicked.connect(lambda: self._browse_file(self.rule_path_input))
+        rule_layout.addWidget(self.rule_path_input)
+        rule_layout.addWidget(browse_rule_btn)
+        resource_layout.addRow("专用规则文档:", rule_layout)
+
+        # 静态扫描规则
+        static_layout = QHBoxLayout()
+        self.static_rule_path_input = QLineEdit(self.config.static_rule_path)
+        self.static_rule_path_input.setPlaceholderText("选择包含静态规则的 Excel...")
+        browse_static_btn = QPushButton("📂")
+        browse_static_btn.clicked.connect(lambda: self._browse_file(self.static_rule_path_input))
+        static_layout.addWidget(self.static_rule_path_input)
+        static_layout.addWidget(browse_static_btn)
+        resource_layout.addRow("静态扫描 Excel:", static_layout)
+
+        # 全局变量表
+        var_layout = QHBoxLayout()
+        self.var_path_input = QLineEdit(self.config.variable_excel_path)
+        self.var_path_input.setPlaceholderText("选择包含全局变量表的 Excel...")
+        browse_var_btn = QPushButton("📂")
+        browse_var_btn.clicked.connect(lambda: self._browse_file(self.var_path_input))
+        var_layout.addWidget(self.var_path_input)
+        var_layout.addWidget(browse_var_btn)
+        resource_layout.addRow("全局变量 Excel:", var_layout)
+        # 专用变量表:
+        special_var_layout = QHBoxLayout()
+        self.special_var_path_input = QLineEdit(self.config.special_variable_excel_path)
+        self.special_var_path_input.setPlaceholderText("选择包含专用变量的 Excel...")
+        browse_spec_var_btn = QPushButton("📂")
+        browse_spec_var_btn.clicked.connect(lambda: self._browse_file(self.special_var_path_input))
+        special_var_layout.addWidget(self.special_var_path_input)
+        special_var_layout.addWidget(browse_spec_var_btn)
+        resource_layout.addRow("专用变量 Excel:", special_var_layout)
+        resource_group.setLayout(resource_layout)
+        layout.addWidget(resource_group)
+
         # 保存按钮
         btn_layout = QHBoxLayout()
         save_btn = QPushButton("💾 保存所有配置")
@@ -178,6 +223,10 @@ class SettingsTab(QWidget):
         self.config.embed_model_name = self.embed_model_input.currentText().strip()
         self.config.embed_host = self.embed_host_input.text().strip()
         self.config.project_root = self.proj_root_input.text().strip()
+        self.config.rule_path = self.rule_path_input.text().strip()
+        self.config.static_rule_path = self.static_rule_path_input.text().strip()
+        self.config.variable_excel_path = self.var_path_input.text().strip()
+        self.config.special_variable_excel_path = self.special_var_path_input.text().strip()
         self.config.save_config()
 
         # 保存到 cfg/models.json
@@ -213,6 +262,18 @@ class SettingsTab(QWidget):
         self.config.prompt_template = self.prompt_template_edit.toPlainText()
         self.config.save_config()
         QMessageBox.information(self, "保存", "提示词模板已更新并保存到本地")
+
+    def _browse_file(self, line_edit, setting_key="last_dir"):
+        import os
+        settings = QSettings("AICoder", "CADI")
+        last_dir = settings.value(setting_key, "")
+        if not last_dir and hasattr(self, 'config') and self.config.project_root:
+            last_dir = self.config.project_root
+            
+        file_path, _ = QFileDialog.getOpenFileName(self, "选择文件", last_dir)
+        if file_path:
+            settings.setValue(setting_key, os.path.dirname(file_path))
+            line_edit.setText(file_path)
 
     def _browse_project_root(self):
         settings = QSettings("AICoder", "CADI")

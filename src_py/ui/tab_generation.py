@@ -19,7 +19,7 @@ from backend.code_parser import extract_code_blocks, parse_requirement_text
 from backend.prompt_builder import PromptBuilder
 
 
-from backend.pipeline_engine import StaticRuleManager
+from backend.pipeline_engine import StaticRuleManager, VariableManager
 
 class DiffDialog(QDialog):
     """代码比对确认弹窗（支持左右对照与分块选择）"""
@@ -255,34 +255,8 @@ class GenerationTab(QWidget):
         req_group.setLayout(req_layout)
         input_layout.addWidget(req_group)
 
-        # 2. 规则文件
-        rule_group = QGroupBox("2. 专用规则 (支持 txt/md/excel)")
-        rule_layout = QHBoxLayout()
-        self.rule_path_edit = QLineEdit()
-        self.rule_path_edit.setPlaceholderText("选择特定规则文档...")
-        rule_btn = QPushButton("📂 浏览...")
-        rule_btn.setCursor(Qt.PointingHandCursor)
-        rule_btn.clicked.connect(lambda: self.browse_file_fn(self.rule_path_edit, "last_dir_rule"))
-        rule_layout.addWidget(self.rule_path_edit)
-        rule_layout.addWidget(rule_btn)
-        rule_group.setLayout(rule_layout)
-        input_layout.addWidget(rule_group)
-
-        # 3. 静态代码扫描
-        scan_group = QGroupBox("3. 静态扫描规则 (Excel)")
-        scan_layout = QHBoxLayout()
-        self.static_rule_path_edit = QLineEdit()
-        self.static_rule_path_edit.setPlaceholderText("选择包含静态规则的 Excel...")
-        scan_btn = QPushButton("📂 浏览...")
-        scan_btn.setCursor(Qt.PointingHandCursor)
-        scan_btn.clicked.connect(lambda: self.browse_file_fn(self.static_rule_path_edit, "last_dir_static_rule"))
-        scan_layout.addWidget(self.static_rule_path_edit)
-        scan_layout.addWidget(scan_btn)
-        scan_group.setLayout(scan_layout)
-        input_layout.addWidget(scan_group)
-
         # 4. RAG 增强
-        kb_group = QGroupBox("4. RAG 增强 (多选)")
+        kb_group = QGroupBox("2. RAG 增强 (多选)")
         kb_layout = QVBoxLayout()
         self.use_rag_cb = QCheckBox("启用知识库增强")
         kb_layout.addWidget(self.use_rag_cb)
@@ -436,8 +410,26 @@ class GenerationTab(QWidget):
 
         # 收集规则
         rules_content = ""
-        rule_file = self.rule_path_edit.text()
+        rule_file = self.config.rule_path
         rules_content += PromptBuilder.load_rules_file(rule_file)
+
+        if hasattr(self.config, 'special_variable_excel_path') and self.config.special_variable_excel_path:
+            rules_content += PromptBuilder.load_special_variables_file(self.config.special_variable_excel_path)
+
+        # 增加静态扫描提取的Excel内容到规则中
+        if hasattr(self.config, 'static_rule_path') and self.config.static_rule_path:
+            manager = StaticRuleManager(self.config.static_rule_path)
+            if manager.rules_text:
+                rules_content += "\n\n【静态代码检查规则】(请在生成代码时必须严格遵守):\n" + manager.rules_text + "\n"
+
+        # 增加全局变量表匹配的内容
+        if hasattr(self.config, 'variable_excel_path') and self.config.variable_excel_path:
+            var_manager = VariableManager(self.config.variable_excel_path)
+            if var_manager.is_loaded:
+                all_vars = var_manager.get_all_vars()
+                if all_vars:
+                    rules_content += "\n\n【全局变量参考】(完整全局变量表，供随时调用):\n" + "\n".join(all_vars) + "\n"
+
 
         # RAG 检索
         rag_context = "无外部知识库上下文"
@@ -505,9 +497,9 @@ class GenerationTab(QWidget):
     #  静态代码扫描
     # ------------------------------------------------------------------ #
     def start_static_scan(self):
-        static_excel = self.static_rule_path_edit.text().strip()
+        static_excel = self.config.static_rule_path.strip() if self.config.static_rule_path else ""
         if not static_excel or not os.path.exists(static_excel):
-            QMessageBox.warning(self, "提示", "请选择有效的静态扫描规则 Excel 文件！")
+            QMessageBox.warning(self, "提示", "请先在【系统设置】中配置有效的静态扫描规则 Excel 文件！")
             return
             
         generated_code = self.code_area.toPlainText().strip()
