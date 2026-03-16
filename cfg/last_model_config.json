@@ -1,0 +1,5 @@
+{
+    "project_root": "",
+    "model_name": "qwen-plus",
+    "embed_model_name": "text-embedding-v4"
+}

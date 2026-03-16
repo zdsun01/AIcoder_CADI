@@ -15,7 +15,7 @@ from PyQt5.QtCore import Qt, QTimer, QSettings
 from ui.widgets import FileDragTextEdit
 from ui.workers import GenerationThread
 from backend.pipeline_engine import (
-    BatchTask, VariableManager, RefCodeManager, TaskParser,
+    BatchTask, VariableManager, RefCodeManager, StaticRuleManager, TaskParser,
     write_code_files, write_single_file,
 )
 from backend.code_parser import extract_code_blocks, extract_multi_files
@@ -116,12 +116,22 @@ class PipelineTab(QWidget):
         ref_layout = QHBoxLayout()
         ref_layout.addWidget(self.ref_excel_path)
         ref_layout.addWidget(browse_ref)
+        
+        self.static_rule_excel_path = QLineEdit()
+        self.static_rule_excel_path.setPlaceholderText("选择包含静态规则的 Excel (用于代码 Review 节点)...")
+        browse_static = QPushButton("📂")
+        browse_static.setFixedSize(30, 20)
+        browse_static.clicked.connect(lambda: self._browse_file(self.static_rule_excel_path, "Excel (*.xlsx)", "last_dir_pipeline_static"))
+        static_layout = QHBoxLayout()
+        static_layout.addWidget(self.static_rule_excel_path)
+        static_layout.addWidget(browse_static)
 
         self.gen_report_cb = QCheckBox("生成代码同时生成 Word 报告")
         self.gen_report_cb.setChecked(True)
 
         report_layout.addRow("Word 模板:", tpl_layout)
         report_layout.addRow("参考代码库:", ref_layout)
+        report_layout.addRow("静态规则表:", static_layout)
         report_layout.addRow("", self.gen_report_cb)
         report_group.setLayout(report_layout)
         layout.addWidget(report_group, 0)
@@ -295,6 +305,10 @@ class PipelineTab(QWidget):
         ref_excel = self.ref_excel_path.text().strip()
         self.ref_manager = RefCodeManager(ref_excel) if ref_excel and os.path.exists(ref_excel) else None
 
+        # 静态规则 Review
+        static_excel = self.static_rule_excel_path.text().strip()
+        self.static_rule_manager = StaticRuleManager(static_excel) if static_excel and os.path.exists(static_excel) else None
+
         # 临时文件夹
         self.generated_temp_files = []
         self.temp_dir = os.path.join(self.config.project_root, "temp_reports")
@@ -304,6 +318,11 @@ class PipelineTab(QWidget):
         self.run_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
         self.current_task_index = -1
+        
+        # 确保重置状态
+        for t in self.tasks:
+            t.processing_stage = "GENERATE"
+            
         self.progress_bar.setMaximum(len(self.tasks))
         self.progress_bar.setValue(0)
         self._run_next()
@@ -399,6 +418,13 @@ class PipelineTab(QWidget):
         if not self.is_running:
             return
         task = self.tasks[self.current_task_index]
+        
+        if getattr(task, 'processing_stage', 'GENERATE') == 'GENERATE':
+            self._handle_generation_finished(task, text)
+        else:
+            self._handle_review_finished(task, text)
+
+    def _handle_generation_finished(self, task, text):
         root = self.config.project_root
 
         multi_files = extract_multi_files(text)
@@ -411,19 +437,72 @@ class PipelineTab(QWidget):
                     final_code += f"{content}\n\n"
             task.generated_clean_code = final_code
             count = write_code_files(root, multi_files)
-            status_msg = f"完成 (生成 {count} 个文件)"
+            status_msg = f"生成完成 ({count}个文件)"
         else:
             clean_code = extract_code_blocks(text)
             task.generated_clean_code = clean_code
             target = task.output_rel_path or (task.target_files[0] if task.target_files else "")
             if target and "未检测到" not in clean_code:
                 if write_single_file(root, target, clean_code):
-                    status_msg = "完成 (单文件)"
+                    status_msg = "生成完成 (单文件)"
                 else:
-                    status_msg = "写入失败"
+                    status_msg = "生成代码写入失败"
             else:
-                status_msg = "完成 (格式不匹配)"
+                status_msg = "生成完成 (格式不匹配)"
 
+        # 进入 Review 阶段判断
+        if hasattr(self, 'static_rule_manager') and self.static_rule_manager and self.static_rule_manager.rules_text:
+            task.processing_stage = 'REVIEW'
+            self._update_status(self.current_task_index, f"{status_msg} -> 开始Review...")
+            
+            prompt = PromptBuilder.build_review_prompt(
+                self.static_rule_manager.rules_text, 
+                task.generated_clean_code
+            )
+            
+            self.worker = GenerationThread(
+                self.config.api_url, self.config.api_key, self.config.model_name, prompt, self.config.host
+            )
+            self.worker.finished_signal.connect(self._on_task_finished)
+            self.worker.error_signal.connect(self._on_task_error)
+            self.worker.start()
+            return
+        else:
+            # 无需 review，直接保存报告并进行下一个
+            self._finalize_task(task, status_msg, "无需 Review")
+
+    def _handle_review_finished(self, task, text):
+        root = self.config.project_root
+        status_msg = "Review 完成"
+
+        # 尝试提取修正后的代码
+        multi_files = extract_multi_files(text)
+        if multi_files:
+            final_code = ""
+            for fn, content in multi_files:
+                if fn.lower().endswith(".c"):
+                    final_code += f"{content}\n\n"
+            task.generated_clean_code = final_code
+            write_code_files(root, multi_files)
+            status_msg += " -> 代码已修正 (多文件)"
+        else:
+            clean_code = extract_code_blocks(text)
+            if clean_code and "未检测到" not in clean_code:
+                task.generated_clean_code = clean_code
+                target = task.output_rel_path or (task.target_files[0] if task.target_files else "")
+                if target:
+                    if write_single_file(root, target, clean_code):
+                        status_msg += " -> 代码已修正"
+                    else:
+                        status_msg += " -> 修正代码写入失败"
+                else:
+                    status_msg += " -> 格式不匹配"
+            else:
+                status_msg += " -> 格式不匹配"
+
+        self._finalize_task(task, status_msg, text)
+
+    def _finalize_task(self, task, status_msg, review_result_text):
         # Word 报告
         if self.gen_report_cb.isChecked():
             tpl = self.word_template_path.text().strip()
@@ -443,7 +522,7 @@ class PipelineTab(QWidget):
                     "{需求ID}": task.id,
                     "{需求内容}": task.content,
                     "{参考代码}": ref_code_str,
-                    "{实际输出代码}": task.generated_clean_code,
+                    "{实际输出代码}": f"【生成代码】:\n{task.generated_clean_code}\n\n【Review 结果】:\n{review_result_text}",
                     "{检索的全局变量}": raw_vars if raw_vars.strip() else "无",
                 }
                 success, path = WordReportGenerator.generate_report(tpl, temp_path, data)

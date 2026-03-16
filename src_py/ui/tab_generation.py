@@ -3,18 +3,222 @@ Tab: 代码生成
 """
 
 import os
+import difflib
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QTextEdit, QGroupBox, QCheckBox, QListWidget, QListWidgetItem, QSplitter,
-    QApplication, QMessageBox,
+    QApplication, QMessageBox, QDialog, QTextBrowser,
+    QScrollArea, QFrame
 )
 from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtGui import QFont, QFontMetrics
 
 from ui.widgets import CCppHighlighter
 from ui.workers import GenerationThread
 from backend.code_parser import extract_code_blocks, parse_requirement_text
 from backend.prompt_builder import PromptBuilder
 
+
+from backend.pipeline_engine import StaticRuleManager
+
+class DiffDialog(QDialog):
+    """代码比对确认弹窗（支持左右对照与分块选择）"""
+    def __init__(self, old_code, new_code, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("代码修正比对 (Interactive Side-by-Side Diff)")
+        self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint)
+        self.resize(1200, 800)
+        
+        self.old_code = old_code
+        self.new_code = new_code
+        self.final_code = ""
+        self.accepted = False
+        
+        main_layout = QVBoxLayout(self)
+        
+        # --- 顶部控制栏 ---
+        ctrl_layout = QHBoxLayout()
+        self.toggle_fs_btn = QPushButton("🔲 全屏/还原")
+        self.toggle_fs_btn.clicked.connect(self.toggle_fullscreen)
+        self.toggle_fs_btn.setMinimumHeight(30)
+        
+        lbl = QLabel("💡 左侧为原始代码，右侧为修正代码。背景色：<font color='red'>红色(删除)</font>、<font color='green'>绿色(新增)</font>、<font color='#b8860b'>黄色(修改)</font>。<br>勾选中间的 <b>[✅ 采用]</b> 即可应用该处修改。")
+        lbl.setStyleSheet("color: #555; font-size: 13px;")
+        
+        ctrl_layout.addWidget(lbl)
+        ctrl_layout.addStretch()
+        ctrl_layout.addWidget(self.toggle_fs_btn)
+        main_layout.addLayout(ctrl_layout)
+        
+        # --- 表头 ---
+        header_layout = QHBoxLayout()
+        h_left = QLabel("修改前 (Original)")
+        h_left.setStyleSheet("font-weight: bold; font-size: 14px; background: #e0e0e0; padding: 5px;")
+        h_left.setAlignment(Qt.AlignCenter)
+        
+        h_mid = QLabel("操作")
+        h_mid.setFixedWidth(60)
+        h_mid.setStyleSheet("font-weight: bold; font-size: 12px;")
+        h_mid.setAlignment(Qt.AlignCenter)
+        
+        h_right = QLabel("修改后 (Fixed)")
+        h_right.setStyleSheet("font-weight: bold; font-size: 14px; background: #e0e0e0; padding: 5px;")
+        h_right.setAlignment(Qt.AlignCenter)
+        
+        header_layout.addWidget(h_left)
+        header_layout.addWidget(h_mid)
+        header_layout.addWidget(h_right)
+        main_layout.addLayout(header_layout)
+        
+        # --- 分块展示区域 ---
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll_widget = QWidget()
+        self.scroll_widget.setStyleSheet("background-color: #ffffff;")
+        self.scroll_layout = QVBoxLayout(self.scroll_widget)
+        self.scroll_layout.setSpacing(0)
+        self.scroll_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.diff_blocks = []
+        self._build_diff_ui()
+        
+        self.scroll_layout.addStretch()
+        self.scroll.setWidget(self.scroll_widget)
+        main_layout.addWidget(self.scroll)
+        
+        # --- 底部按钮 ---
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        
+        reject_all_btn = QPushButton("❌ 放弃所有并返回")
+        reject_all_btn.setMinimumHeight(35)
+        reject_all_btn.clicked.connect(self.reject)
+        
+        accept_btn = QPushButton("✅ 完成比对，应用已选块代码")
+        accept_btn.setMinimumHeight(35)
+        accept_btn.setStyleSheet("background-color: #07C160; color: white; font-weight: bold; padding: 0 20px;")
+        accept_btn.clicked.connect(self.accept_changes)
+        
+        btn_layout.addWidget(reject_all_btn)
+        btn_layout.addWidget(accept_btn)
+        main_layout.addLayout(btn_layout)
+
+    def toggle_fullscreen(self):
+        if self.isMaximized():
+            self.showNormal()
+        else:
+            self.showMaximized()
+
+    def _build_diff_ui(self):
+        old_lines = self.old_code.splitlines()
+        new_lines = self.new_code.splitlines()
+        
+        font = QFont("Consolas", 11)
+        fm = QFontMetrics(font)
+        line_h = fm.lineSpacing()
+        
+        sm = difflib.SequenceMatcher(None, old_lines, new_lines)
+        for tag, i1, i2, j1, j2 in sm.get_opcodes():
+            row_widget = QFrame()
+            row_layout = QHBoxLayout(row_widget)
+            row_layout.setContentsMargins(0, 2, 0, 2)
+            row_layout.setSpacing(5)
+            
+            old_text = "\n".join(old_lines[i1:i2])
+            new_text = "\n".join(new_lines[j1:j2])
+            
+            lc_old = max(1, i2 - i1)
+            lc_new = max(1, j2 - j1)
+            
+            if tag == 'equal':
+                if i2 - i1 == 0: continue
+                te_height = max(30, (i2 - i1) * line_h + 10)
+                
+                left_te = QTextEdit(old_text)
+                right_te = QTextEdit(new_text)
+                
+                for te in (left_te, right_te):
+                    te.setFont(font)
+                    te.setReadOnly(True)
+                    te.setLineWrapMode(QTextEdit.NoWrap)
+                    te.setFixedHeight(te_height)
+                    te.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+                    te.setStyleSheet("background-color: #f7f7f7; color: #777; border: none;")
+                
+                mid_widget = QLabel()
+                mid_widget.setFixedWidth(60)
+                
+                row_layout.addWidget(left_te)
+                row_layout.addWidget(mid_widget)
+                row_layout.addWidget(right_te)
+                
+                self.diff_blocks.append({
+                    'type': 'equal',
+                    'lines': old_lines[i1:i2]
+                })
+                row_widget.setStyleSheet("border-bottom: 1px solid #eee;")
+            else:
+                max_lines = max(lc_old, lc_new)
+                te_height = max(35, max_lines * line_h + 10)
+                
+                left_te = QTextEdit(old_text if tag in ('replace', 'delete') else "")
+                right_te = QTextEdit(new_text if tag in ('replace', 'insert') else "")
+                
+                for te in (left_te, right_te):
+                    te.setFont(font)
+                    te.setReadOnly(True)
+                    te.setLineWrapMode(QTextEdit.NoWrap)
+                    te.setFixedHeight(te_height)
+                    te.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+                
+                if tag == 'replace':
+                    left_te.setStyleSheet("background-color: #fffaea; color: #8c7300; border: 1px solid #ffd54f;")
+                    right_te.setStyleSheet("background-color: #fffaea; color: #8c7300; border: 1px solid #ffd54f;")
+                elif tag == 'delete':
+                    left_te.setStyleSheet("background-color: #ffeaea; color: #aa0000; border: 1px solid #ffcccc;")
+                    right_te.setStyleSheet("background-color: #f7f7f7; border: none;")
+                elif tag == 'insert':
+                    left_te.setStyleSheet("background-color: #f7f7f7; border: none;")
+                    right_te.setStyleSheet("background-color: #eaffea; color: #006600; border: 1px solid #ccffcc;")
+                
+                mid_widget = QWidget()
+                mid_widget.setFixedWidth(60)
+                mid_layout = QVBoxLayout(mid_widget)
+                mid_layout.setContentsMargins(0,0,0,0)
+                
+                chk = QCheckBox("采用")
+                chk.setChecked(True)
+                chk.setStyleSheet("font-weight: bold; color: #007700; font-size: 12px;")
+                mid_layout.addWidget(chk, alignment=Qt.AlignCenter)
+                
+                row_layout.addWidget(left_te)
+                row_layout.addWidget(mid_widget)
+                row_layout.addWidget(right_te)
+                
+                self.diff_blocks.append({
+                    'type': 'diff',
+                    'old_lines': old_lines[i1:i2],
+                    'new_lines': new_lines[j1:j2],
+                    'checkbox': chk
+                })
+                row_widget.setStyleSheet("border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; background-color: #fefefe;")
+                
+            self.scroll_layout.addWidget(row_widget)
+
+    def accept_changes(self):
+        final_code_lines = []
+        for blk in self.diff_blocks:
+            if blk['type'] == 'equal':
+                final_code_lines.extend(blk['lines'])
+            else:
+                if blk['checkbox'].isChecked():
+                    final_code_lines.extend(blk['new_lines'])
+                else:
+                    final_code_lines.extend(blk['old_lines'])
+                    
+        self.final_code = "\n".join(final_code_lines)
+        self.accepted = True
+        self.accept()
 
 class GenerationTab(QWidget):
     """代码生成 Tab"""
@@ -52,9 +256,10 @@ class GenerationTab(QWidget):
         input_layout.addWidget(req_group)
 
         # 2. 规则文件
-        rule_group = QGroupBox("2. 特定编码规则 (可选)")
+        rule_group = QGroupBox("2. 专用规则 (支持 txt/md/excel)")
         rule_layout = QHBoxLayout()
         self.rule_path_edit = QLineEdit()
+        self.rule_path_edit.setPlaceholderText("选择特定规则文档...")
         rule_btn = QPushButton("📂 浏览...")
         rule_btn.setCursor(Qt.PointingHandCursor)
         rule_btn.clicked.connect(lambda: self.browse_file_fn(self.rule_path_edit, "last_dir_rule"))
@@ -63,8 +268,21 @@ class GenerationTab(QWidget):
         rule_group.setLayout(rule_layout)
         input_layout.addWidget(rule_group)
 
-        # 3. RAG 增强
-        kb_group = QGroupBox("3. RAG 增强 (多选)")
+        # 3. 静态代码扫描
+        scan_group = QGroupBox("3. 静态扫描规则 (Excel)")
+        scan_layout = QHBoxLayout()
+        self.static_rule_path_edit = QLineEdit()
+        self.static_rule_path_edit.setPlaceholderText("选择包含静态规则的 Excel...")
+        scan_btn = QPushButton("📂 浏览...")
+        scan_btn.setCursor(Qt.PointingHandCursor)
+        scan_btn.clicked.connect(lambda: self.browse_file_fn(self.static_rule_path_edit, "last_dir_static_rule"))
+        scan_layout.addWidget(self.static_rule_path_edit)
+        scan_layout.addWidget(scan_btn)
+        scan_group.setLayout(scan_layout)
+        input_layout.addWidget(scan_group)
+
+        # 4. RAG 增强
+        kb_group = QGroupBox("4. RAG 增强 (多选)")
         kb_layout = QVBoxLayout()
         self.use_rag_cb = QCheckBox("启用知识库增强")
         kb_layout.addWidget(self.use_rag_cb)
@@ -79,15 +297,17 @@ class GenerationTab(QWidget):
         kb_group.setLayout(kb_layout)
         input_layout.addWidget(kb_group)
 
-        # 4. 模型显示
-        model_group = QGroupBox("4. 模型选择")
+        # 5. 模型显示
+        model_group = QGroupBox("5. 模型选择")
         model_layout = QHBoxLayout()
         self.model_label_display = QLabel(f"当前: {self.config.model_name}")
         model_layout.addWidget(self.model_label_display)
         model_group.setLayout(model_layout)
         input_layout.addWidget(model_group)
 
-        # 生成按钮
+        # 生成与扫描按钮
+        btn_layout = QHBoxLayout()
+        
         self.gen_btn = QPushButton("🚀 生成代码")
         self.gen_btn.setCursor(Qt.PointingHandCursor)
         self.gen_btn.setStyleSheet("""
@@ -100,7 +320,24 @@ class GenerationTab(QWidget):
             QPushButton:disabled { background-color: #ccc; }
         """)
         self.gen_btn.clicked.connect(self.start_generation)
-        input_layout.addWidget(self.gen_btn)
+        btn_layout.addWidget(self.gen_btn)
+
+        self.scan_btn = QPushButton("🔍 静态扫描")
+        self.scan_btn.setCursor(Qt.PointingHandCursor)
+        self.scan_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 16px; font-weight: bold; padding: 10px;
+                background-color: #07C160; color: white; border-radius: 5px; border: none;
+            }
+            QPushButton:hover { background-color: #06ad56; }
+            QPushButton:pressed { background-color: #05994c; }
+            QPushButton:disabled { background-color: #ccc; }
+        """)
+        self.scan_btn.setEnabled(False)  # 只有生成代码后才可用
+        self.scan_btn.clicked.connect(self.start_static_scan)
+        btn_layout.addWidget(self.scan_btn)
+
+        input_layout.addLayout(btn_layout)
         input_layout.addStretch()
 
         # ---- 右侧：输出区 ----
@@ -256,12 +493,77 @@ class GenerationTab(QWidget):
         self.result_area.setText(text)
         self.code_area.setText(extract_code_blocks(text))
         self.gen_btn.setEnabled(True)
+        self.scan_btn.setEnabled(True)
         self.status_label.setText("生成完成")
 
     def _on_error(self, error_msg):
         self.result_area.setText(f"生成失败: {error_msg}\n\n请检查 '系统设置' 中的 API URL.")
         self.gen_btn.setEnabled(True)
         self.status_label.setText("出错")
+
+    # ------------------------------------------------------------------ #
+    #  静态代码扫描
+    # ------------------------------------------------------------------ #
+    def start_static_scan(self):
+        static_excel = self.static_rule_path_edit.text().strip()
+        if not static_excel or not os.path.exists(static_excel):
+            QMessageBox.warning(self, "提示", "请选择有效的静态扫描规则 Excel 文件！")
+            return
+            
+        generated_code = self.code_area.toPlainText().strip()
+        if not generated_code or "等待生成新的代码" in generated_code:
+            QMessageBox.warning(self, "提示", "请先生成或输入待扫描的代码！")
+            return
+            
+        manager = StaticRuleManager(static_excel)
+        if not manager.rules_text:
+            QMessageBox.warning(self, "提示", "无法从 Excel 中提取规则，请检查格式(需包含“标号”和“准则描述”列)！")
+            return
+            
+        prompt = PromptBuilder.build_review_prompt(manager.rules_text, generated_code)
+        
+        self.gen_btn.setEnabled(False)
+        self.scan_btn.setEnabled(False)
+        
+        self.result_area.append("\n\n" + "="*50 + "\n🚀 [开始静态代码扫描 (Review)]\n")
+        self.status_label.setText(f"正在调用 {self.config.model_name} 进行静态扫描(流式)...")
+        
+        self.scan_thread = GenerationThread(
+            self.config.api_url, self.config.api_key, self.config.model_name, prompt, self.config.host
+        )
+        self.scan_thread.chunk_signal.connect(self._on_scan_chunk)
+        self.scan_thread.finished_signal.connect(self._on_scan_finished)
+        self.scan_thread.error_signal.connect(self._on_scan_error)
+        self.scan_thread.start()
+        
+    def _on_scan_chunk(self, text):
+        from PyQt5.QtGui import QTextCursor
+        self.result_area.moveCursor(QTextCursor.End)
+        self.result_area.insertPlainText(text)
+        self.result_area.moveCursor(QTextCursor.End)
+        
+    def _on_scan_finished(self, text):
+        clean_code = extract_code_blocks(text)
+        if clean_code and "未检测到" not in clean_code:
+            original_code = self.code_area.toPlainText()
+            diff_dialog = DiffDialog(original_code, clean_code, self)
+            
+            if diff_dialog.exec_() and diff_dialog.accepted:
+                self.code_area.setText(diff_dialog.final_code)
+                self.status_label.setText("静态代码扫描完成，已应用代码修正！")
+            else:
+                self.status_label.setText("静态代码扫描完成，已放弃修改。")
+        else:
+            self.status_label.setText("静态动态扫描完成，未检测到需修正代码")
+            
+        self.gen_btn.setEnabled(True)
+        self.scan_btn.setEnabled(True)
+        
+    def _on_scan_error(self, error_msg):
+        self.result_area.append(f"\n扫描失败: {error_msg}")
+        self.gen_btn.setEnabled(True)
+        self.scan_btn.setEnabled(True)
+        self.status_label.setText("扫描出错")
 
     def _copy_code(self):
         code = self.code_area.toPlainText()

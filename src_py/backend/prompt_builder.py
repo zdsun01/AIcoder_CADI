@@ -165,18 +165,76 @@ class PromptBuilder:
         return prompt, question
 
     # ------------------------------------------------------------------ #
+    #  场景 5：静态代码检查 (Review)
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def build_review_prompt(rules_text, generated_code):
+        """构建静态检查 Review 节点的 prompt"""
+        return (
+            "你是一个严格的嵌入式C语言静态代码审计专家。请根据以下静态检查规则对提供的代码进行审查。\n\n"
+            "【静态检查规则】:\n"
+            f"{rules_text}\n\n"
+            "【待检查的代码】:\n"
+            f"{generated_code}\n\n"
+            "【任务要求】:\n"
+            "1. 仔细比对代码和每一条规则。\n"
+            "2. 如果发现违反规则的地方，请明确指出违反了哪条规则（带上标号），并给出修改建议。\n"
+            "3. 即使没有发现问题，也请给出简短的肯定回复（如：代码符合规则，未发现明显的违规）。\n"
+            "4. 你的输出内容将作为代码的审查报告，请保持专业、客观、条理清晰。\n"
+            "5. 在输出审查报告后，**必须**提供一份修复所有检查问题的完整代码，并使用 ```c 代码内容 ``` 的格式包裹。"
+        )
+
+    # ------------------------------------------------------------------ #
     #  辅助：读取外部规则文件
     # ------------------------------------------------------------------ #
     @staticmethod
     def load_rules_file(rule_path):
-        """读取用户指定的规则文件，返回文本"""
+        """读取用户指定的规则文件，支持 txt, md, xlsx, xls 返回文本"""
         if not rule_path or not os.path.exists(rule_path):
             return ""
-        try:
-            with open(rule_path, "r", encoding="utf-8") as f:
-                return f"【用户指定规则文件】:\n{f.read()}\n"
-        except Exception:
-            return ""
+            
+        if rule_path.lower().endswith(('.xlsx', '.xls')):
+            try:
+                import pandas as pd
+                df = pd.read_excel(rule_path, engine="openpyxl" if rule_path.endswith(".xlsx") else None)
+                df.dropna(how="all", inplace=True)
+                
+                # 尝试寻找常用表头（如规则、描述、ID等）
+                id_col = next((c for c in df.columns if "标号" in str(c) or "规则类型" in str(c).upper()), None)
+                desc_col = next((c for c in df.columns if "描述" in str(c) or "规则内容" in str(c) or "规则" in str(c) or "Rule" in str(c)), None)
+                
+                rules_text = ""
+                if id_col and desc_col:
+                    rules = []
+                    for _, row in df.iterrows():
+                        rule_id = str(row[id_col]).strip()
+                        rule_desc = str(row[desc_col]).strip()
+                        if rule_id and rule_id.lower() != "nan" and rule_desc and rule_desc.lower() != "nan":
+                            rules.append(f"- [{rule_id}] {rule_desc}")
+                    rules_text = "\n".join(rules)
+                else:
+                    # 如果没有特定表头，泛型拼接所有非空列
+                    rules = []
+                    for _, row in df.iterrows():
+                        row_items = []
+                        for col in df.columns:
+                            if "Unnamed" not in str(col):
+                                val = str(row[col]).strip()
+                                if val and val.lower() != "nan":
+                                    row_items.append(f"{col}: {val}")
+                        if row_items:
+                            rules.append(" | ".join(row_items))
+                    rules_text = "\n".join(rules)
+                    
+                return f"【用户指定专用规则】:\n{rules_text}\n"
+            except Exception as e:
+                return f"【读取专用规则 Excel 失败】: {e}\n"
+        else:
+            try:
+                with open(rule_path, "r", encoding="utf-8") as f:
+                    return f"【用户指定专用规则】:\n{f.read()}\n"
+            except Exception:
+                return ""
 
     # ================================================================== #
     #  Private helpers

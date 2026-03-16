@@ -27,6 +27,7 @@ class BatchTask:
         self.ref_code = parsed_data.get("req_ref_code", "")
         self.target_files = parsed_data.get("target_files", [])
         self.status = "等待中"
+        self.processing_stage = "GENERATE"
         self.result_code = ""
         self.error_msg = ""
         self.generated_clean_code = ""
@@ -118,6 +119,44 @@ class RefCodeManager:
 
     def get_code(self, req_id):
         return self.ref_data.get(req_id, "无 (未在参考库中找到对应ID)")
+
+
+# ====================================================================== #
+#  静态规则管理
+# ====================================================================== #
+
+class StaticRuleManager:
+    """管理静态规则 Excel 并提取标号和准则描述"""
+
+    def __init__(self, excel_path=None):
+        self.rules_text = ""
+        if excel_path and os.path.exists(excel_path):
+            self.load_excel(excel_path)
+
+    def load_excel(self, path):
+        try:
+            df = pd.read_excel(path, engine="openpyxl")
+            df.columns = [str(col).strip() for col in df.columns]
+            
+            id_col = next((c for c in df.columns if "标号" in str(c)), None)
+            desc_col = next((c for c in df.columns if "准则描述" in str(c)), None)
+            
+            if id_col and desc_col:
+                rules = []
+                for _, row in df.iterrows():
+                    rule_id = str(row[id_col]).strip()
+                    rule_desc = str(row[desc_col]).strip()
+                    if rule_id and rule_id.lower() != "nan" and rule_desc and rule_desc.lower() != "nan":
+                        rules.append(f"标号: {rule_id} | 准则描述: {rule_desc}")
+                self.rules_text = "\n".join(rules)
+                print(f"静态规则表加载成功: {len(rules)} 条")
+            else:
+                print(f"静态规则表格式错误：未找到 '标号' 或 '准则描述' 列")
+        except Exception as e:
+            print(f"静态规则表加载失败: {e}")
+
+    def get_rules_text(self):
+        return self.rules_text
 
 
 # ====================================================================== #
