@@ -4,12 +4,23 @@ import os
 class ConfigManager:
     """管理配置，提示词保存到 cfg/prompt_template.json 文件"""
     def __init__(self):
+        import sys
         # 使用相对于当前文件或工程根目录的确定路径
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.models_file = os.path.join(base_dir, "cfg", "models.json")
-        self.embed_models_file = os.path.join(base_dir, "cfg", "embedding.json")
-        self.prompt_template_file = os.path.join(base_dir, "cfg", "prompt_template.json")
-        self.active_config_file = os.path.join(base_dir, "cfg", "last_model_config.json")
+        if getattr(sys, 'frozen', False):
+            # 如果是打包为exe运行，基础路径设为exe文件所在目录
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            # 如果是源码运行，基础路径设为项目根目录
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        
+        cfg_dir = os.path.join(base_dir, "cfg")
+        if not os.path.exists(cfg_dir):
+            os.makedirs(cfg_dir, exist_ok=True)
+            
+        self.models_file = os.path.join(cfg_dir, "models.json")
+        self.embed_models_file = os.path.join(cfg_dir, "embedding.json")
+        self.prompt_template_file = os.path.join(cfg_dir, "prompt_template.json")
+        self.active_config_file = os.path.join(cfg_dir, "last_model_config.json")
         self.project_root = ""
         self.variable_excel_path = ""
 

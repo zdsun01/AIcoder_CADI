@@ -41,7 +41,7 @@ class HTTPEmbeddings(Embeddings):
         resp = requests.post(self.endpoint, headers=headers, json=payload, timeout=self.timeout)
         resp.raise_for_status()
         data = resp.json()
-        data = [item["embedding"] for item in data["data"]]
+        #data = [item["embedding"] for item in data["data"]]
         print(data)
         return data
 
@@ -62,7 +62,12 @@ class RAGManager:
     """RAG 管理核心类"""
 
     def __init__(self, embed_api_url: str, embed_api_key: str = None, embed_model_name: str = None, embed_host: str = None):
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        import sys
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            
         self.persist_directory = os.path.join(base_dir, "chroma_db")
 
         try:
@@ -119,8 +124,12 @@ class RAGManager:
     # ------------------------------------------------------------------ #
     def init_default_kb(self):
         default_kb_name = "GJB_5369_2005"
-        # 使用相对于当前文件所在的路径来定位 GJB/rules.json
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        import sys
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            
         json_path = os.path.join(base_dir, "GJB", "rules.json")
 
         if default_kb_name in self.knowledge_bases:
