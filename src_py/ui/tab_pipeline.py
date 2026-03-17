@@ -415,26 +415,8 @@ class PipelineTab(QWidget):
             else:
                 status_msg = "生成完成 (格式不匹配)"
 
-        # 进入 Review 阶段判断
-        if hasattr(self, 'static_rule_manager') and self.static_rule_manager and self.static_rule_manager.rules_text:
-            task.processing_stage = 'REVIEW'
-            self._update_status(self.current_task_index, f"{status_msg} -> 开始Review...")
-            
-            prompt = PromptBuilder.build_review_prompt(
-                self.static_rule_manager.rules_text, 
-                task.generated_clean_code
-            )
-            
-            self.worker = GenerationThread(
-                self.config.api_url, self.config.api_key, self.config.model_name, prompt, self.config.host
-            )
-            self.worker.finished_signal.connect(self._on_task_finished)
-            self.worker.error_signal.connect(self._on_task_error)
-            self.worker.start()
-            return
-        else:
-            # 无需 review，直接保存报告并进行下一个
-            self._finalize_task(task, status_msg, "无需 Review")
+        # 流水线取消自动 Review，直接保存报告并进行下一个
+        self._finalize_task(task, status_msg, "流水线未执行自动扫描")
 
     def _handle_review_finished(self, task, text):
         root = self.config.project_root

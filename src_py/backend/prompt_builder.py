@@ -64,13 +64,10 @@ class PromptBuilder:
         local_vars,
     ):
         """
-        构建流水线模式的 prompt。集成 SOP、变量指南、多文件格式约束。
+        构建流水线模式的 prompt。集成变量指南、多文件格式约束，取消七步SOP，使用类似单次生成的提示词。
         """
-        # --- 变量使用指南 ---
-        variable_instruction = self._build_variable_instruction(matched_vars_text)
-
-        # --- 7 步 SOP ---
-        seven_step_sop = self._build_sop()
+        # --- 变量展示 (看齐单次生成，仅作全集展示和基础提醒) ---
+        variable_instruction = f"\n【全局变量参考】(完整全局变量表，供随时调用):\n{matched_vars_text}\n"
 
         # --- 目标文件列表 ---
         files_instruction = self._build_files_instruction(target_files)
@@ -80,7 +77,7 @@ class PromptBuilder:
             "\n【流水线模式-强制格式约束】:\n"
             "1. 请直接输出函数实现代码，严禁包含 main() 函数。\n"
             "2. 代码必须是完整的、可编译的 C 函数。\n"
-            "3. **必须在代码中用注释标出上述 7 个阶段** (例如: /* 1. 开始 */ ...)。\n"
+            "3. 保持单次生成的简洁性，直接实现需求即可。\n"
         )
 
         # --- 参考代码 ---
@@ -97,13 +94,13 @@ class PromptBuilder:
         )
         final_rules = (
             f"{base_rule}\n{variable_instruction}\n"
-            f"{seven_step_sop}\n{files_instruction}\n{pipeline_constraint}"
+            f"{files_instruction}\n{pipeline_constraint}"
         )
 
         # --- req_vars ---
         final_req_vars = self._resolve_req_vars(local_vars, matched_vars_text)
 
-        # --- 填充模板 ---
+        # --- 填充模板 (直接复用 self.template 类似单次生成) ---
         try:
             return self.template.format(
                 req_id=task_id,
@@ -115,10 +112,15 @@ class PromptBuilder:
                 rules=final_rules,
             )
         except KeyError:
-            return (
-                f"# Task: {task_name}\n# Requirement:\n{task_content}\n"
-                f"# Rules:\n{final_rules}\n# Context:\n{rag_context}\n"
-                f"Please write code."
+            # 万一模板含多余占位符，用 safe fallback
+            return self.template.format(
+                rules=final_rules,
+                context=rag_context,
+                req_id=task_id,
+                req_name=task_name,
+                req_content=task_content,
+                req_vars=final_req_vars,
+                req_ref_code=ref_code_section,
             )
 
     # ------------------------------------------------------------------ #
@@ -245,20 +247,23 @@ class PromptBuilder:
         if file_path.lower().endswith(('.xlsx', '.xls')):
             try:
                 import pandas as pd
-                df = pd.read_excel(file_path, engine="openpyxl" if file_path.endswith(".xlsx") else None)
-                df.dropna(how="all", inplace=True)
+                sheets_dict = pd.read_excel(file_path, sheet_name=None, engine="openpyxl" if file_path.endswith(".xlsx") else None)
+                structs = []
                 
-                # 寻找我们需要的表头
-                name_col = next((c for c in df.columns if "结构体名称" in str(c)), None)
-                content_col = next((c for c in df.columns if "结构体内容" in str(c)), None)
-                
-                if name_col and content_col:
-                    structs = []
-                    for _, row in df.iterrows():
-                        s_name = str(row[name_col]).strip()
-                        s_content = str(row[content_col]).strip()
-                        if s_name and s_name.lower() != "nan" and s_content and s_content.lower() != "nan":
-                            structs.append(f"【结构体】{s_name}\n内容:\n{s_content}\n")
+                for sheet_name, df in sheets_dict.items():
+                    df.dropna(how="all", inplace=True)
+                    # 寻找我们需要的表头
+                    name_col = next((c for c in df.columns if "结构体名称" in str(c)), None)
+                    content_col = next((c for c in df.columns if "结构体内容" in str(c)), None)
+                    
+                    if name_col and content_col:
+                        for _, row in df.iterrows():
+                            s_name = str(row[name_col]).strip()
+                            s_content = str(row[content_col]).strip()
+                            if s_name and s_name.lower() != "nan" and s_content and s_content.lower() != "nan":
+                                structs.append(f"【结构体】{s_name}\n内容:\n{s_content}\n")
+                                
+                if structs:
                     structs_text = "\n".join(structs)
                     return f"\n【专用结构体定义(需求可用)】\n{structs_text}\n"
                 else:
@@ -270,36 +275,6 @@ class PromptBuilder:
     # ================================================================== #
     #  Private helpers
     # ================================================================== #
-
-    @staticmethod
-    def _build_variable_instruction(matched_vars_text):
-        return (
-            "\n【变量使用与推理指南 (Variable Logic)】:\n"
-            "系统已根据需求检索到了以下可能相关的【现有变量库】：\n"
-            '"""\n'
-            f"{matched_vars_text}\n"
-            '"""\n'
-            "**你的行动指令**：\n"
-            "1. **优先匹配**：仔细检查上述列表。如果列表中存在符合需求的变量（名称或物理含义匹配），"
-            "**必须直接使用**该变量的 ID 和 数据类型，严禁重复定义。\n"
-            "2. **推理生成**：如果上述列表中没有你需要的变量，请**参考列表中的命名风格**"
-            "（如前缀 ELEC/HYD、下划线用法、大写习惯），自行推理并生成新的变量 ID 和定义。\n"
-            "3. **一致性**：确保新生成的变量与现有变量在风格上保持高度一致。\n"
-        )
-
-    @staticmethod
-    def _build_sop():
-        return (
-            "\n【代码生成-标准作业流程 (SOP)】:\n"
-            "在编写代码实现该需求时，必须严格在函数内部体现以下 7 个阶段的逻辑（可使用注释标记阶段）：\n"
-            "1. **开始 (Start)**: 变量定义、静态变量初始化、结构体清零。\n"
-            "2. **信号处理 (Signal Proc)**: 对输入数据（传感器/参数）进行滤波、有效性校验、归一化。\n"
-            "3. **能源管理 (Power Mgmt)**: 检查当前电源状态、功耗模式、是否允许执行高功耗操作。\n"
-            "4. **系统控制 (Control Algo)**: 执行核心业务逻辑（如 PID 计算、状态机流转、阈值判定）。\n"
-            "5. **告警输出 (Alarm Out)**: 检查上述逻辑是否触发故障，置位错误码或故障标志。\n"
-            "6. **信号输出 (Signal Out)**: 将最终结果写入硬件寄存器、输出变量或缓冲区。\n"
-            "7. **结束 (End)**: 更新历史状态变量（如上一次误差）、返回执行结果。\n"
-        )
 
     @staticmethod
     def _build_files_instruction(target_files):
@@ -321,7 +296,7 @@ class PromptBuilder:
     def _resolve_req_vars(local_vars, matched_vars_text):
         parsed = (local_vars or "").strip()
         if parsed and parsed not in ("None", "无"):
-            return f"{parsed}\n(注：请同时结合 Rules 中检索到的系统变量进行开发)"
+            return f"{parsed}\n(注：请同时结合 Rules 中检索到的系统级别【全局变量】进行开发)"
         if matched_vars_text and "未配置变量表" not in matched_vars_text:
-            return "本需求未定义局部变量，**请严格使用 [Rules] - [变量使用与推理指南] 章节中列出的系统变量**。"
+            return "本需求未定义局部变量，**请严格使用 [Rules] - [全局变量使用指南] 章节中列出的系统变量**。"
         return "无明确变量定义，请根据逻辑自行推断（需符合命名规范）。"

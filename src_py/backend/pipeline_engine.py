@@ -50,14 +50,49 @@ class VariableManager:
         if not excel_path or not os.path.exists(excel_path):
             return
         try:
-            self.df = pd.read_excel(excel_path, engine="openpyxl")
+            abs_excel_path = os.path.abspath(excel_path)
+            excel_filename = os.path.basename(abs_excel_path)
+            print(f"变量表文件: {excel_filename}")
+            print(f"变量表路径: {abs_excel_path}")
+
+            # sheet_name=None 读取所有的 Sheets，返回一个字典 {sheet_name: DataFrame}
+            sheets_dict = pd.read_excel(excel_path, sheet_name=None, engine="openpyxl")
+            all_dfs = []
+            for sheet_name, df in sheets_dict.items():
+                if df.empty:
+                    continue
+                
+                # Check if columns are correct, maybe headers are in a lower row
+                if "信号ID" not in df.columns and "信号名称" not in df.columns:
+                    # Search first 15 rows for the header
+                    header_row_idx = -1
+                    for idx, row in df.head(15).iterrows():
+                        row_strs = [str(x).strip() for x in row.values]
+                        if "信号ID" in row_strs or "信号名称" in row_strs:
+                            header_row_idx = idx
+                            break
+                    if header_row_idx != -1:
+                        # Re-read or just promote the row to headers
+                        new_header = df.iloc[header_row_idx].astype(str).str.strip()
+                        df = df[header_row_idx + 1:].copy()
+                        df.columns = new_header
+                
+                df.columns = df.columns.astype(str).str.strip()
+                if not df.empty:
+                    all_dfs.append(df)
+            
+            if all_dfs:
+                self.df = pd.concat(all_dfs, ignore_index=True)
+            else:
+                self.df = pd.DataFrame()
+
             self.df.fillna("", inplace=True)
             self.df["search_index"] = self.df.apply(
-                lambda x: f"{x.get('信号名称', '')} {x.get('信号ID（变量名）', '')} {x.get('值定义', '')}",
+                lambda x: f"{x.get('信号名称', '')} {x.get('信号ID', '')} {x.get('值定义', '')}",
                 axis=1,
             )
             self.is_loaded = True
-            print(f"变量表加载成功，共 {len(self.df)} 条数据")
+            print(f"变量表加载成功，共 {len(self.df)} 条数据 (来自 {len(all_dfs)} 个 Sheet)")
         except Exception as e:
             print(f"变量表加载失败: {e}")
 
@@ -68,13 +103,27 @@ class VariableManager:
 
         results = []
         for _, row in self.df.iterrows():
+            # 提取可能存在的方向字段，如“输入/输出”
+            direction = row.get('输入/输出', '未定义')
+            # 将字典式的键值对改为自然语言描述，帮助大模型更好地进行语义理解
             var_info = (
-                f"- 名称: {row.get('信号名称', '')}, "
-                f"ID: {row.get('信号ID（变量名）', '')}, "
-                f"类型: {row.get('数据类型', '')}, "
-                f"定义: {row.get('值定义', '')}"
+                f"- {row.get('信号ID', '')}是一个全局变量，"
+                f"它的信号名称是{row.get('信号名称', '')}。"
+                f"这主要是一个{direction}变量，其数据类型为{row.get('数据类型', '')}。"
             )
+            if row.get('值定义', ''):
+                var_info += f"缺省值或宏定义为{row.get('值定义', '')}。"
+            
+            # 把所有非空的附加列信息加上，用自然语句拼接
+            extra_info = []
+            if '单位' in row and row['单位']: extra_info.append(f"单位是{row['单位']}")
+            if '范围' in row and row['范围']: extra_info.append(f"取值范围是{row['范围']}")
+            if extra_info:
+                var_info += " 此外：" + "，".join(extra_info) + "。"
+            
             results.append(var_info)
+        if results:
+            print(results[0])
         return results
 
     def search_relevant_vars(self, requirement_text, top_k=10):
@@ -92,12 +141,22 @@ class VariableManager:
                 if kw in search_content:
                     score += 1
             if score > 0:
+                direction = row.get('输入/输出', '未定义')
                 var_info = (
-                    f"- 名称: {row.get('信号名称', '')}, "
-                    f"ID: {row.get('信号ID（变量名）', '')}, "
-                    f"类型: {row.get('数据类型', '')}, "
-                    f"定义: {row.get('值定义', '')}"
+                    f"- {row.get('信号ID', '')}是一个全局变量，"
+                    f"它的信号名称是{row.get('信号名称', '')}。"
+                    f"这主要是一个{direction}变量，其数据类型为{row.get('数据类型', '')}。"
                 )
+                if row.get('值定义', ''):
+                    var_info += f"缺省值或宏定义为{row.get('值定义', '')}。"
+
+                extra_info = []
+                if '单位' in row and row['单位']: extra_info.append(f"单位是{row['单位']}")
+                if '范围' in row and row['范围']: extra_info.append(f"取值范围是{row['范围']}")
+                if '备注' in row and row['备注']: extra_info.append(f"额外备注：{row['备注']}")
+                if extra_info:
+                    var_info += " 此外：" + "，".join(extra_info) + "。"
+
                 results.append((score, var_info))
 
         results.sort(key=lambda x: x[0], reverse=True)

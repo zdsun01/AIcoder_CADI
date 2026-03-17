@@ -1,8 +1,8 @@
 {
-    "project_root": "",
+    "project_root": "D:/generate_code",
     "model_name": "qwen-plus",
     "embed_model_name": "text-embedding-v4",
-    "variable_excel_path": "D:/Project/python_proj/prompt/requry/var.xlsx",
+    "variable_excel_path": "D:/Project/python_proj/prompt/variable/var_table.xlsx",
     "special_variable_excel_path": "D:/Project/python_proj/prompt/variable/struct.xlsx",
     "rule_path": "C:/Users/ASUS/Documents/Excel/statica_scan.xlsx",
     "static_rule_path": "C:/Users/ASUS/Documents/Excel/statica_scan.xlsx"
