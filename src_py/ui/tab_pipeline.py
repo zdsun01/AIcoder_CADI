@@ -13,14 +13,13 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QTimer, QSettings
 
 from ui.widgets import FileDragTextEdit
-from ui.workers import GenerationThread
+from ui.workers import GenerationThread, RAGRecallThread
 from backend.pipeline_engine import (
     BatchTask, VariableManager, RefCodeManager, StaticRuleManager, TaskParser,
     write_code_files, write_single_file,
 )
 from backend.code_parser import extract_code_blocks, extract_multi_files
 from backend.prompt_builder import PromptBuilder
-from backend.report_generator import WordReportGenerator
 
 
 class PipelineTab(QWidget):
@@ -80,36 +79,6 @@ class PipelineTab(QWidget):
         rag_layout.addWidget(self.kb_list)
         rag_group.setLayout(rag_layout)
         layout.addWidget(rag_group, 1)
-
-        # 2.2 报告配置
-        report_group = QGroupBox("2.1 测试报告配置 (Word)")
-        report_layout = QFormLayout()
-        self.word_template_path = QLineEdit()
-        self.word_template_path.setPlaceholderText("选择包含表格和占位符的 .docx 模板...")
-        browse_tpl = QPushButton("📂")
-        browse_tpl.setFixedSize(30, 20)
-        browse_tpl.clicked.connect(lambda: self._browse_file(self.word_template_path, "Word (*.docx)", "last_dir_pipeline_tpl"))
-        tpl_layout = QHBoxLayout()
-        tpl_layout.addWidget(self.word_template_path)
-        tpl_layout.addWidget(browse_tpl)
-
-        self.ref_excel_path = QLineEdit()
-        self.ref_excel_path.setPlaceholderText("选择包含参考代码的 Excel (用于填充报告)...")
-        browse_ref = QPushButton("📂")
-        browse_ref.setFixedSize(30, 20)
-        browse_ref.clicked.connect(lambda: self._browse_file(self.ref_excel_path, "Excel (*.xlsx)", "last_dir_pipeline_ref"))
-        ref_layout = QHBoxLayout()
-        ref_layout.addWidget(self.ref_excel_path)
-        ref_layout.addWidget(browse_ref)
-        
-        self.gen_report_cb = QCheckBox("生成代码同时生成 Word 报告")
-        self.gen_report_cb.setChecked(True)
-
-        report_layout.addRow("Word 模板:", tpl_layout)
-        report_layout.addRow("参考代码库:", ref_layout)
-        report_layout.addRow("", self.gen_report_cb)
-        report_group.setLayout(report_layout)
-        layout.addWidget(report_group, 0)
 
         # 3. 执行队列
         task_group = QGroupBox("3. 执行队列")
@@ -261,18 +230,12 @@ class PipelineTab(QWidget):
         else:
             self.var_manager = None
 
-        # 参考代码
-        ref_excel = self.ref_excel_path.text().strip()
-        self.ref_manager = RefCodeManager(ref_excel) if ref_excel and os.path.exists(ref_excel) else None
+        # 参考代码不再从界面配置，若后续需要可从配置中读取，此处设为 None
+        self.ref_manager = None
 
         # 静态规则 Review
         static_excel = self.config.static_rule_path.strip()
         self.static_rule_manager = StaticRuleManager(static_excel) if static_excel and os.path.exists(static_excel) else None
-
-        # 临时文件夹
-        self.generated_temp_files = []
-        self.temp_dir = os.path.join(self.config.project_root, "temp_reports")
-        os.makedirs(self.temp_dir, exist_ok=True)
 
         self.is_running = True
         self.run_btn.setEnabled(False)
@@ -289,6 +252,16 @@ class PipelineTab(QWidget):
 
     def _stop(self):
         self.is_running = False
+        
+        if hasattr(self, 'rag_worker') and self.rag_worker.isRunning():
+            try:
+                self.rag_worker.finished_signal.disconnect()
+                self.rag_worker.error_signal.disconnect()
+            except Exception:
+                pass
+            self.rag_worker.terminate()
+            self.rag_worker.wait(100)
+            
         if hasattr(self, 'worker') and self.worker.isRunning():
             try:
                 self.worker.finished_signal.disconnect()
@@ -331,13 +304,32 @@ class PipelineTab(QWidget):
         QApplication.processEvents()
 
         # --- RAG ---
-        rag_context = ""
         if self.use_rag_cb.isChecked():
             selected_kbs = self._get_selected_kbs()
             if selected_kbs:
+                self._update_status(self.current_task_index, "🔍 RAG检索中...")
                 full_query = f"{task.id} {task.name}\n{task.content}"
                 query_text = full_query[:800]
-                rag_context = self.rag_manager.recall_multi(query_text, selected_kbs)
+                self.rag_worker = RAGRecallThread(self.rag_manager, query_text, selected_kbs)
+                self.rag_worker.finished_signal.connect(self._on_rag_finished)
+                self.rag_worker.error_signal.connect(self._on_rag_error)
+                self.rag_worker.start()
+                return
+
+        self._on_rag_finished("")
+
+    def _on_rag_error(self, err_msg):
+        if not self.is_running:
+            return
+        self._update_status(self.current_task_index, f"RAG异常: {err_msg}")
+        self._on_rag_finished("")
+
+    def _on_rag_finished(self, rag_context):
+        if not self.is_running:
+            return
+        
+        task = self.tasks[self.current_task_index]
+        self._update_status(self.current_task_index, "🔍 准备变量与规则...")
 
         # --- 变量获取 ---
         matched_vars = "无 (未配置变量表或无匹配项)"
@@ -450,32 +442,6 @@ class PipelineTab(QWidget):
         self._finalize_task(task, status_msg, text)
 
     def _finalize_task(self, task, status_msg, review_result_text):
-        # Word 报告
-        if self.gen_report_cb.isChecked():
-            tpl = self.word_template_path.text().strip()
-            if tpl and os.path.exists(tpl):
-                safe_name = task.id.replace(".", "_").strip()
-                temp_path = os.path.join(self.temp_dir, f"{self.current_task_index:03d}_{safe_name}.docx")
-
-                ref_code_str = "无"
-                if self.ref_manager:
-                    ref_code_str = self.ref_manager.get_code(task.id)
-                elif task.ref_code and task.ref_code not in ("None", ""):
-                    ref_code_str = task.ref_code
-
-                raw_vars = getattr(task, "used_global_vars", "")
-                data = {
-                    "{需求名称}": task.name,
-                    "{需求ID}": task.id,
-                    "{需求内容}": task.content,
-                    "{参考代码}": ref_code_str,
-                    "{实际输出代码}": f"【生成代码】:\n{task.generated_clean_code}\n\n【Review 结果】:\n{review_result_text}",
-                    "{检索的全局变量}": raw_vars if raw_vars.strip() else "无",
-                }
-                success, path = WordReportGenerator.generate_report(tpl, temp_path, data)
-                if success:
-                    self.generated_temp_files.append(path)
-
         self._update_status(self.current_task_index, status_msg)
         self.progress_bar.setValue(self.current_task_index + 1)
         self._run_next()
@@ -491,24 +457,7 @@ class PipelineTab(QWidget):
         self.run_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
 
-        if self.gen_report_cb.isChecked() and self.generated_temp_files:
-            self.status_label.setText("正在合并/追加 Word 报告...")
-            QApplication.processEvents()
-
-            final_path = os.path.join(self.config.project_root, "reports", "Project_Total_Report.docx")
-            os.makedirs(os.path.dirname(final_path), exist_ok=True)
-
-            success, msg = WordReportGenerator.merge_reports(self.generated_temp_files, final_path)
-            if success:
-                try:
-                    shutil.rmtree(self.temp_dir)
-                except Exception:
-                    pass
-                QMessageBox.information(self, "完成", f"全部完成！报告已更新至:\n{final_path}")
-            else:
-                QMessageBox.warning(self, "警告", f"合并出错: {msg}")
-        else:
-            QMessageBox.information(self, "完成", "流水线队列处理完毕！")
+        QMessageBox.information(self, "完成", "流水线队列处理完毕！")
 
     def _get_selected_kbs(self):
         selected = []

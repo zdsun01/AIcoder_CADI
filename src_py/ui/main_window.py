@@ -15,7 +15,6 @@ from ui.tab_kb import KBManageTab
 from ui.tab_settings import SettingsTab
 from ui.tab_qa import QATab
 from ui.tab_pipeline import PipelineTab
-from ui.tab_var_test import VariableTestTab
 
 
 class AICoderApp(QMainWindow):
@@ -82,10 +81,6 @@ class AICoderApp(QMainWindow):
         self.qa_tab = QATab(self.config, self.rag_manager, self.status_label)
         self.tabs.addTab(self.qa_tab, "智能问答")
 
-        # Tab6: 变量表测试
-        self.var_test_tab = VariableTestTab(self.config, self.rag_manager, self.status_label)
-        self.tabs.addTab(self.var_test_tab, "变量表测试")
-
         # 初始化知识库列表
         self._refresh_all_kbs()
 
@@ -110,7 +105,6 @@ class AICoderApp(QMainWindow):
         self.kb_tab.refresh()
         self.qa_tab.refresh_kb_list()
         self.pipeline_tab.refresh_kb_list()
-        self.var_test_tab.refresh_kbs()
 
     def _on_settings_saved(self):
         """设置保存后同步 UI"""

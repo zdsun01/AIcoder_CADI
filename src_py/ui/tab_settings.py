@@ -106,7 +106,7 @@ class SettingsTab(QWidget):
         # 专用规则文档
         rule_layout = QHBoxLayout()
         self.rule_path_input = QLineEdit(self.config.rule_path)
-        self.rule_path_input.setPlaceholderText("选择特定规则文档 (如 .json, .txt, .pdf, .docx)...")
+        self.rule_path_input.setPlaceholderText("选择特定规则文档 (如 .json, .txt, .pdf)...")
         browse_rule_btn = QPushButton("📂")
         browse_rule_btn.clicked.connect(lambda: self._browse_file(self.rule_path_input))
         rule_layout.addWidget(self.rule_path_input)

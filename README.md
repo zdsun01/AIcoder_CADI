@@ -8,8 +8,6 @@
 - 📚 RAG知识库检索 (ChromaDB)
 - 🧠 智能问答
 - 🔁 批量任务流水线
-- 📊 变量表测试
-- 📝 Word报告自动生成
 
 项目采用 **前后端分离架构**，便于扩展和维护。
 
@@ -29,8 +27,7 @@ src_py/
 │ ├── prompt_builder.py # Prompt构建模块
 │ ├── rag_core.py # RAG + ChromaDB检索
 │ ├── code_parser.py # 代码提取与需求解析
-│ ├── pipeline_engine.py # 批量任务流水线引擎
-│ └── report_generator.py # Word报告生成
+│ └── pipeline_engine.py # 批量任务流水线引擎
 │
 └── ui/ # PyQt5 前端界面
 ├── workers.py # QThread线程封装
@@ -40,8 +37,7 @@ src_py/
 ├── tab_kb.py # 知识库管理Tab
 ├── tab_settings.py # 设置Tab
 ├── tab_qa.py # 问答Tab
-├── tab_pipeline.py # 流水线Tab
-└── tab_var_test.py # 变量测试Tab
+└── tab_pipeline.py # 流水线Tab
 
 
 ---
@@ -81,7 +77,6 @@ backend/prompt_builder.py
 | build_generation_prompt | 单次代码生成 |
 | build_pipeline_prompt | 批量代码生成 |
 | build_qa_prompt | 智能问答 |
-| build_variable_test_prompt | 变量测试 |
 
 这样避免Prompt分散在多个文件中。
 
@@ -125,26 +120,6 @@ backend/prompt_builder.py
 
 ---
 
-## 5 变量测试
-
-用于验证变量表是否正确解析。
-
----
-
-## 6 Word报告生成
-
-自动生成：
-
-
-需求分析报告
-代码生成报告
-测试报告
-
-
-基于 **Word模板替换实现**。
-
----
-
 # 安装说明
 
 ## Python版本
@@ -171,7 +146,6 @@ pip install -r requirements.txt
 PyQt5
 chromadb
 requests
-python-docx
 
 
 ---
