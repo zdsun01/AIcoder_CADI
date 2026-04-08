@@ -81,7 +81,6 @@ backend/prompt_builder.py
 | build_generation_prompt | 单次代码生成 |
 | build_pipeline_prompt | 批量代码生成 |
 | build_qa_prompt | 智能问答 |
-| build_variable_test_prompt | 变量测试 |
 
 这样避免Prompt分散在多个文件中。
 
